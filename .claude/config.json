@@ -1,0 +1,24 @@
+{
+  "projectName": "EclipseLink AI",
+  "description": "Voice-enabled clinical handoff platform with AI-powered SBAR generation",
+  "techStack": {
+    "frontend": "Next.js 14, TypeScript, Tailwind CSS, shadcn/ui",
+    "backend": "Express.js, TypeScript, Supabase, Redis",
+    "ai": "Azure OpenAI (Whisper, GPT-4)",
+    "database": "PostgreSQL (Supabase)",
+    "storage": "Cloudflare R2",
+    "cache": "Upstash Redis"
+  },
+  "conventions": {
+    "commits": "Conventional Commits",
+    "branching": "Git Flow",
+    "typescript": "strict mode",
+    "linting": "ESLint + Prettier"
+  },
+  "directories": {
+    "frontend": "apps/frontend",
+    "backend": "apps/backend",
+    "shared": "packages",
+    "docs": "docs"
+  }
+}

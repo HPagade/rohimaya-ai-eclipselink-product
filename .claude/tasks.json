@@ -1,0 +1,29 @@
+{
+  "tasks": [
+    {
+      "name": "create-component",
+      "description": "Create a new React component with TypeScript",
+      "template": "Create a {{componentName}} component in {{path}} with TypeScript, Tailwind CSS, and shadcn/ui components. Include proper types and JSDoc comments."
+    },
+    {
+      "name": "create-api-route",
+      "description": "Create a new Next.js API route",
+      "template": "Create a {{method}} {{endpoint}} route in {{path}} with TypeScript, input validation using Zod, error handling, and proper types."
+    },
+    {
+      "name": "create-service",
+      "description": "Create a new backend service",
+      "template": "Create {{serviceName}} service in apps/backend/src/services/ with TypeScript, comprehensive error handling, logging, and unit tests."
+    },
+    {
+      "name": "add-tests",
+      "description": "Add tests for existing code",
+      "template": "Create comprehensive Jest tests for {{filePath}} including unit tests, integration tests, and edge cases."
+    },
+    {
+      "name": "refactor",
+      "description": "Refactor existing code",
+      "template": "Refactor {{filePath}} to improve code quality, add types, optimize performance, and add comments."
+    }
+  ]
+}

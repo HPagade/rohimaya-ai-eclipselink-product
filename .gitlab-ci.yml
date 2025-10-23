@@ -1,0 +1,92 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  NODE_VERSION: "18"
+
+# Cache configuration
+.node_cache: &node_cache
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+      - .npm/
+
+# Test Frontend
+test:frontend:
+  stage: test
+  image: node:${NODE_VERSION}
+  <<: *node_cache
+  script:
+    - cd apps/frontend
+    - npm ci
+    - npm run lint
+    - npm run type-check
+    - npm test
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Test Backend
+test:backend:
+  stage: test
+  image: node:${NODE_VERSION}
+  <<: *node_cache
+  script:
+    - cd apps/backend
+    - npm ci
+    - npm run lint
+    - npm run type-check
+    - npm test
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Build Frontend
+build:frontend:
+  stage: build
+  image: node:${NODE_VERSION}
+  <<: *node_cache
+  script:
+    - cd apps/frontend
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - apps/frontend/.next/
+    expire_in: 1 hour
+  only:
+    - main
+
+# Deploy Frontend to Cloudflare Pages
+deploy:frontend:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  dependencies:
+    - build:frontend
+  script:
+    - npm install -g wrangler
+    - cd apps/frontend
+    - npx wrangler pages publish .next --project-name=eclipselink-ai
+  environment:
+    name: production
+    url: https://app.eclipselink.ai
+  only:
+    - main
+
+# Deploy Backend to Railway
+deploy:backend:
+  stage: deploy
+  image: curlimages/curl:latest
+  script:
+    - curl -X POST $RAILWAY_WEBHOOK_URL
+  environment:
+    name: production
+  only:
+    - main

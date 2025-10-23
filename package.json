@@ -1,0 +1,57 @@
+{
+  "name": "eclipselink-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EclipseLink AI - Voice-enabled clinical handoff platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "build:frontend": "npm run build --workspace=apps/frontend",
+    "build:backend": "npm run build --workspace=apps/backend",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "migrate": "bash scripts/migrate.sh",
+    "seed": "bash scripts/seed.sh"
+  },
+  "keywords": [
+    "healthcare",
+    "clinical-handoff",
+    "SBAR",
+    "voice-to-text",
+    "AI",
+    "EHR-integration"
+  ],
+  "author": {
+    "name": "Rohimaya Health AI",
+    "email": "contact@rohimaya.ai",
+    "url": "https://rohimaya.ai"
+  },
+  "contributors": [
+    {
+      "name": "Hannah Kraulik Pagade",
+      "role": "CEO"
+    },
+    {
+      "name": "Prasad Pagade",
+      "role": "CTO"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HPagade/rohimaya-ai-eclipselink-product.git"
+  },
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "typescript": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
