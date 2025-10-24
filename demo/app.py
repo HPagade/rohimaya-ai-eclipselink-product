@@ -4,6 +4,7 @@ from datetime import datetime
 import sqlite3
 import os
 from database import init_db, search_handoffs
+from translations import LANGUAGES, get_text
 
 # Page configuration
 st.set_page_config(
@@ -303,6 +304,23 @@ def main():
 
     # Sidebar
     with st.sidebar:
+        # Language selector
+        if 'language' not in st.session_state:
+            st.session_state.language = 'en'
+
+        st.markdown("### 🌐 Language")
+        selected_lang = st.selectbox(
+            "Choose language",
+            options=list(LANGUAGES.keys()),
+            format_func=lambda x: LANGUAGES[x],
+            key="lang_selector",
+            label_visibility="collapsed"
+        )
+        if selected_lang != st.session_state.language:
+            st.session_state.language = selected_lang
+            st.rerun()
+
+        st.markdown("---")
         st.markdown("### Navigation")
 
         if st.session_state.authenticated:
@@ -331,6 +349,21 @@ def main():
 
             if st.button("📝 Audit Trail", use_container_width=True, type="primary" if current_page == 'audit_trail' else "secondary"):
                 st.session_state.page = 'audit_trail'
+                st.rerun()
+
+            st.markdown("---")
+            st.markdown("**🚀 NEW FEATURES**")
+
+            if st.button("🤖 AI Assistant", use_container_width=True, type="primary" if current_page == 'chatbot' else "secondary"):
+                st.session_state.page = 'chatbot'
+                st.rerun()
+
+            if st.button("👨‍👩‍👧 Family Portal", use_container_width=True, type="primary" if current_page == 'family_portal' else "secondary"):
+                st.session_state.page = 'family_portal'
+                st.rerun()
+
+            if st.button("🏥 Patient Portal", use_container_width=True, type="primary" if current_page == 'patient_portal' else "secondary"):
+                st.session_state.page = 'patient_portal'
                 st.rerun()
 
             st.markdown("---")
@@ -383,6 +416,15 @@ def main():
         elif page == 'audit_trail':
             from pages import audit_trail
             audit_trail.show()
+        elif page == 'chatbot':
+            from pages import chatbot
+            chatbot.show()
+        elif page == 'family_portal':
+            from pages import family_portal
+            family_portal.show()
+        elif page == 'patient_portal':
+            from pages import patient_portal
+            patient_portal.show()
 
 if __name__ == "__main__":
     main()
