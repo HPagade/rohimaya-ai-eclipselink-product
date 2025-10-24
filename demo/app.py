@@ -136,6 +136,41 @@ def dashboard_page():
     st.markdown(f"<div class='main-header'>⚡ EclipseLink AI™</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='subtitle'>Welcome back, {st.session_state.user['name']}</div>", unsafe_allow_html=True)
 
+    # First-time user guided tour
+    if 'tour_shown' not in st.session_state:
+        st.session_state.tour_shown = True
+        st.balloons()
+
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.75rem; margin-bottom: 2rem; color: white;'>
+            <h2 style='margin: 0 0 1rem 0; color: white;'>👋 Welcome to EclipseLink AI!</h2>
+            <p style='font-size: 1.1rem; margin-bottom: 1rem;'>
+                Let's take a quick tour of your new clinical handoff platform. Here's what you can do:
+            </p>
+            <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;'>
+                <div style='background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem;'>
+                    <strong>🎤 Voice Recording</strong><br>
+                    <small>Record handoffs in 2 minutes vs 20 minutes manually</small>
+                </div>
+                <div style='background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem;'>
+                    <strong>🤖 AI SBAR Generation</strong><br>
+                    <small>Automatic structured reports with quality scoring</small>
+                </div>
+                <div style='background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem;'>
+                    <strong>📊 Analytics Dashboard</strong><br>
+                    <small>Track performance, trends, and quality metrics</small>
+                </div>
+                <div style='background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 0.5rem;'>
+                    <strong>👥 Patient Management</strong><br>
+                    <small>Complete histories and handoff tracking</small>
+                </div>
+            </div>
+            <p style='margin-top: 1.5rem; text-align: center; font-size: 0.9rem; opacity: 0.9;'>
+                💡 Tip: Start by clicking "➕ New Handoff" in the sidebar to create your first AI-powered handoff!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
     # Stats
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM handoffs WHERE status='active'")
