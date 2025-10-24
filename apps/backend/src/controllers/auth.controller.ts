@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt.util';
 import {
   AuthenticationError,
@@ -7,14 +8,15 @@ import {
   NotFoundError
 } from '../middleware/error.middleware';
 import { UUID } from '@eclipselink/types';
+import { db } from '../config/database.config';
+import { DBStaff, DBFacility, DBAuthSession } from '../types/database.types';
 
 /**
  * Auth Controller
  * Handles authentication endpoints
  * Based on Part 4A specifications
  *
- * NOTE: This is a stub implementation. In production, replace with actual
- * database queries using Supabase or PostgreSQL client
+ * Database integrated with PostgreSQL via pg Pool
  */
 
 /**
@@ -25,28 +27,55 @@ export async function register(req: Request, res: Response): Promise<void> {
   const { email, password, firstName, lastName, role, facilityId, licenseNumber, licenseState } = req.body;
 
   try {
-    // TODO: Replace with actual database queries
     // 1. Check if user already exists
-    // const existingUser = await db.query('SELECT * FROM staff WHERE email = $1', [email]);
-    // if (existingUser.rows.length > 0) {
-    //   throw new ConflictError('A user with this email already exists', {
-    //     resource: 'user',
-    //     conflictingField: 'email',
-    //     conflictingValue: email
-    //   });
-    // }
+    const existingUser = await db.query<DBStaff>(
+      'SELECT id FROM staff WHERE email = $1',
+      [email.toLowerCase()]
+    );
 
-    // 2. Hash password
-    // const hashedPassword = await bcrypt.hash(password, 10);
+    if (existingUser.rows.length > 0) {
+      throw new ConflictError('A user with this email already exists', {
+        resource: 'user',
+        conflictingField: 'email',
+        conflictingValue: email
+      });
+    }
 
-    // 3. Create user in database
-    // const user = await db.query(
-    //   'INSERT INTO staff (email, password_hash, first_name, last_name, role, facility_id, license_number, license_state) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-    //   [email, hashedPassword, firstName, lastName, role, facilityId, licenseNumber, licenseState]
-    // );
+    // 2. Verify facility exists
+    const facilityResult = await db.query<DBFacility>(
+      'SELECT id, name, facility_type FROM facilities WHERE id = $1 AND is_active = true',
+      [facilityId]
+    );
 
-    // 4. Get facility details
-    // const facility = await db.query('SELECT * FROM facilities WHERE id = $1', [facilityId]);
+    if (facilityResult.rows.length === 0) {
+      throw new NotFoundError('facility', facilityId);
+    }
+
+    const facility = facilityResult.rows[0];
+
+    // 3. Hash password (bcrypt with 10 rounds)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 4. Create user in database
+    const userResult = await db.query<DBStaff>(
+      `INSERT INTO staff (
+        email, password_hash, first_name, last_name, role, facility_id,
+        license_number, license_state, is_active, email_verified
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, false)
+      RETURNING *`,
+      [
+        email.toLowerCase(),
+        hashedPassword,
+        firstName,
+        lastName,
+        role,
+        facilityId,
+        licenseNumber || null,
+        licenseState || null
+      ]
+    );
+
+    const user = userResult.rows[0];
 
     // 5. Get permissions for role
     const permissions = getPermissionsForRole(role);
@@ -56,7 +85,7 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     // 7. Generate JWT tokens
     const tokens = generateTokenPair(
-      'stub-user-id' as UUID, // Replace with actual user.id
+      user.id,
       facilityId,
       role,
       permissions,
@@ -64,33 +93,36 @@ export async function register(req: Request, res: Response): Promise<void> {
     );
 
     // 8. Store session in database
-    // await db.query(
-    //   'INSERT INTO user_sessions (id, staff_id, refresh_token, expires_at) VALUES ($1, $2, $3, $4)',
-    //   [tokenId, user.id, tokens.refreshToken, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)]
-    // );
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    await db.query(
+      `INSERT INTO auth_sessions (
+        id, user_id, refresh_token, token_id, is_active, expires_at, last_activity_at
+      ) VALUES (gen_random_uuid(), $1, $2, $3, true, $4, NOW())`,
+      [user.id, tokens.refreshToken, tokenId, expiresAt]
+    );
 
-    // 9. Send verification email (async)
+    // 9. TODO: Send verification email (async)
     // await sendVerificationEmail(email, user.id);
 
-    // Stub response
+    // Response
     res.status(201).json({
       success: true,
       data: {
         user: {
-          id: 'stub-user-id',
-          email,
-          firstName,
-          lastName,
-          role,
-          facilityId,
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          facilityId: user.facility_id,
           facility: {
-            id: facilityId,
-            name: 'Stub Facility',
-            type: 'hospital'
+            id: facility.id,
+            name: facility.name,
+            type: facility.facility_type
           },
-          isActive: true,
-          emailVerified: false,
-          createdAt: new Date().toISOString()
+          isActive: user.is_active,
+          emailVerified: user.email_verified,
+          createdAt: user.created_at.toISOString()
         },
         tokens: {
           accessToken: tokens.accessToken,
@@ -117,26 +149,34 @@ export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
 
   try {
-    // TODO: Replace with actual database queries
-    // 1. Find user by email
-    // const user = await db.query('SELECT * FROM staff WHERE email = $1', [email]);
-    // if (user.rows.length === 0) {
-    //   throw new AuthenticationError('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
-    // }
+    // 1. Find user by email with facility details
+    const userResult = await db.query<DBStaff & { facility_name: string; facility_type: string }>(
+      `SELECT s.*, f.name as facility_name, f.facility_type
+       FROM staff s
+       JOIN facilities f ON s.facility_id = f.id
+       WHERE s.email = $1`,
+      [email.toLowerCase()]
+    );
+
+    if (userResult.rows.length === 0) {
+      throw new AuthenticationError('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
+    }
+
+    const user = userResult.rows[0];
 
     // 2. Verify password
-    // const isPasswordValid = await bcrypt.compare(password, user.rows[0].password_hash);
-    // if (!isPasswordValid) {
-    //   throw new AuthenticationError('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
-    // }
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+      throw new AuthenticationError('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
+    }
 
     // 3. Check if account is active
-    // if (!user.rows[0].is_active) {
-    //   throw new AuthenticationError('AUTH_ACCOUNT_LOCKED', 'Account is locked');
-    // }
+    if (!user.is_active) {
+      throw new AuthenticationError('AUTH_ACCOUNT_LOCKED', 'Account is locked. Please contact your administrator.');
+    }
 
-    // 4. Check if email is verified (optional)
-    // if (!user.rows[0].email_verified) {
+    // 4. Optional: Check if email is verified (can be disabled for development)
+    // if (!user.email_verified) {
     //   throw new AuthenticationError('AUTH_EMAIL_NOT_VERIFIED', 'Email address must be verified', {
     //     email,
     //     verificationEmailSent: true
@@ -144,49 +184,55 @@ export async function login(req: Request, res: Response): Promise<void> {
     // }
 
     // 5. Get permissions for role
-    const permissions = getPermissionsForRole('registered_nurse'); // Stub role
+    const permissions = getPermissionsForRole(user.role);
 
     // 6. Generate session token ID
     const tokenId = generateTokenId();
 
     // 7. Generate JWT tokens
     const tokens = generateTokenPair(
-      'stub-user-id' as UUID,
-      'stub-facility-id' as UUID,
-      'registered_nurse',
+      user.id,
+      user.facility_id,
+      user.role,
       permissions,
       tokenId
     );
 
     // 8. Store session in database
-    // await db.query(
-    //   'INSERT INTO user_sessions (id, staff_id, refresh_token, expires_at) VALUES ($1, $2, $3, $4)',
-    //   [tokenId, user.id, tokens.refreshToken, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)]
-    // );
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    await db.query(
+      `INSERT INTO auth_sessions (
+        id, user_id, refresh_token, token_id, is_active, expires_at, last_activity_at
+      ) VALUES (gen_random_uuid(), $1, $2, $3, true, $4, NOW())`,
+      [user.id, tokens.refreshToken, tokenId, expiresAt]
+    );
 
     // 9. Update last login timestamp
-    // await db.query('UPDATE staff SET last_login_at = NOW() WHERE id = $1', [user.id]);
+    await db.query(
+      'UPDATE staff SET last_login_at = NOW() WHERE id = $1',
+      [user.id]
+    );
 
-    // Stub response
+    // Response
     res.status(200).json({
       success: true,
       data: {
         user: {
-          id: 'stub-user-id',
-          email,
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'registered_nurse',
-          facilityId: 'stub-facility-id',
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          facilityId: user.facility_id,
           facility: {
-            id: 'stub-facility-id',
-            name: 'City General Hospital',
-            type: 'hospital'
+            id: user.facility_id,
+            name: user.facility_name,
+            type: user.facility_type
           },
-          department: 'Emergency Department',
-          isActive: true,
-          emailVerified: true,
-          mfaEnabled: false,
+          department: user.department,
+          isActive: user.is_active,
+          emailVerified: user.email_verified,
+          mfaEnabled: user.two_factor_enabled,
           lastLoginAt: new Date().toISOString()
         },
         tokens: {
