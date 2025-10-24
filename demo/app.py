@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 import sqlite3
 import os
+from database import init_db, search_handoffs
 
 # Page configuration
 st.set_page_config(
@@ -19,6 +20,8 @@ if 'user' not in st.session_state:
     st.session_state.user = None
 if 'handoffs' not in st.session_state:
     st.session_state.handoffs = []
+if 'page' not in st.session_state:
+    st.session_state.page = 'dashboard'
 
 # Custom CSS
 st.markdown("""
@@ -90,53 +93,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def init_db():
-    """Initialize SQLite database for demo"""
-    conn = sqlite3.connect('demo_data.db', check_same_thread=False)
-    c = conn.cursor()
-
-    # Create tables
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS handoffs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_name TEXT,
-            patient_id TEXT,
-            handoff_type TEXT,
-            priority TEXT,
-            status TEXT,
-            created_at TEXT,
-            sbar_situation TEXT,
-            sbar_background TEXT,
-            sbar_assessment TEXT,
-            sbar_recommendation TEXT,
-            recording_duration INTEGER
-        )
-    ''')
-
-    # Insert sample data if empty
-    c.execute('SELECT COUNT(*) FROM handoffs')
-    if c.fetchone()[0] == 0:
-        sample_data = [
-            ('John Smith', 'P001234', 'shift_change', 'routine', 'completed',
-             '2025-10-24 08:30:00',
-             '60-year-old male with type 2 diabetes. Current glucose 145 mg/dL. Alert and oriented x3.',
-             'History of T2DM (10 years), hypertension. Home meds: Metformin 1000mg BID, Lisinopril 10mg daily. Known PCN allergy.',
-             'Vital signs stable: BP 130/85, HR 78, RR 16, SpO2 98% RA. Blood glucose trending down with insulin regimen.',
-             'Continue insulin sliding scale. Discharge education completed. Follow-up with endocrinology in 2 weeks.',
-             185),
-            ('Jane Doe', 'P001235', 'transfer', 'urgent', 'active',
-             '2025-10-24 10:15:00', None, None, None, None, None),
-        ]
-        c.executemany('''
-            INSERT INTO handoffs (patient_name, patient_id, handoff_type, priority, status,
-                                created_at, sbar_situation, sbar_background, sbar_assessment,
-                                sbar_recommendation, recording_duration)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', sample_data)
-
-    conn.commit()
-    return conn
-
 # Initialize database
 conn = init_db()
 
@@ -189,6 +145,12 @@ def dashboard_page():
     c.execute("SELECT COUNT(*) FROM handoffs")
     total_count = c.fetchone()[0]
 
+    # Calculate average time
+    c.execute("SELECT AVG(recording_duration) FROM handoffs WHERE recording_duration IS NOT NULL")
+    avg_duration = c.fetchone()[0] or 0
+    avg_min = int(avg_duration // 60)
+    avg_sec = int(avg_duration % 60)
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -218,20 +180,56 @@ def dashboard_page():
     with col4:
         st.markdown("""
         <div class='stat-card' style='background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);'>
-            <div class='stat-number'>2.3</div>
+            <div class='stat-number'>{}:{:02d}</div>
             <div class='stat-label'>Avg Time (min)</div>
         </div>
-        """, unsafe_allow_html=True)
+        """.format(avg_min, avg_sec), unsafe_allow_html=True)
 
-    st.markdown("### Recent Handoffs")
+    st.markdown("---")
 
-    # Get recent handoffs
-    c.execute("SELECT * FROM handoffs ORDER BY created_at DESC LIMIT 10")
-    handoffs = c.fetchall()
+    # Search and Filter
+    st.markdown("### 🔍 Search & Filter")
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        search_query = st.text_input("Search", placeholder="Patient name, ID...", label_visibility="collapsed")
+
+    with col2:
+        handoff_type_filter = st.selectbox("Type", ["all", "shift_change", "transfer", "admission", "discharge", "procedure"])
+
+    with col3:
+        priority_filter = st.selectbox("Priority", ["all", "routine", "urgent", "emergent"])
+
+    with col4:
+        status_filter = st.selectbox("Status", ["all", "active", "pending", "completed"])
+
+    with col5:
+        c.execute("SELECT DISTINCT specialty FROM handoffs WHERE specialty IS NOT NULL")
+        specialties = ['all'] + [s[0] for s in c.fetchall()]
+        specialty_filter = st.selectbox("Specialty", specialties)
+
+    # Get filtered handoffs
+    handoffs = search_handoffs(conn,
+                               query=search_query,
+                               handoff_type=handoff_type_filter,
+                               priority=priority_filter,
+                               status=status_filter,
+                               specialty=specialty_filter)
+
+    st.markdown(f"### Handoffs ({len(handoffs)} found)")
 
     if handoffs:
         for handoff in handoffs:
-            handoff_id, patient_name, patient_id, handoff_type, priority, status, created_at, *_ = handoff
+            handoff_id = handoff[0]
+            patient_name = handoff[1]
+            patient_id = handoff[2]
+            handoff_type = handoff[3]
+            priority = handoff[4]
+            status = handoff[5]
+            created_at = handoff[6]
+            from_staff = handoff[8] if len(handoff) > 8 else 'Unknown'
+            specialty = handoff[10] if len(handoff) > 10 else 'General'
 
             status_class = f"status-{status}"
             status_text = status.replace('_', ' ').title()
@@ -243,7 +241,8 @@ def dashboard_page():
                     <div style='display: flex; align-items: center; justify-content: space-between;'>
                         <div>
                             <strong>{patient_name}</strong> • {patient_id}
-                            <br><small style='color: #64748b;'>{handoff_type.replace('_', ' ').title()} • {created_at}</small>
+                            <br><small style='color: #64748b;'>{handoff_type.replace('_', ' ').title()} • {specialty} • {created_at}</small>
+                            <br><small style='color: #94a3b8;'>From: {from_staff}</small>
                         </div>
                         <span class='status-badge {status_class}'>{status_text}</span>
                     </div>
@@ -258,7 +257,7 @@ def dashboard_page():
                 priority_color = {'routine': '🟢', 'urgent': '🟡', 'emergent': '🔴'}
                 st.markdown(f"<div style='text-align: center; padding: 0.5rem;'>{priority_color.get(priority, '⚪')} {priority.title()}</div>", unsafe_allow_html=True)
     else:
-        st.info("No handoffs yet. Create your first handoff to get started!")
+        st.info("No handoffs found. Try adjusting your filters or create a new handoff.")
 
     if st.button("➕ Create New Handoff", type="primary", use_container_width=True):
         st.session_state.page = 'create_handoff'
@@ -276,17 +275,43 @@ def main():
             st.markdown(f"*{st.session_state.user['role']}*")
             st.markdown("---")
 
-            if st.button("🏠 Dashboard", use_container_width=True):
+            # Main navigation buttons with visual feedback
+            current_page = st.session_state.get('page', 'dashboard')
+
+            if st.button("🏠 Dashboard", use_container_width=True, type="primary" if current_page == 'dashboard' else "secondary"):
                 st.session_state.page = 'dashboard'
                 st.rerun()
 
-            if st.button("➕ New Handoff", use_container_width=True):
+            if st.button("➕ New Handoff", use_container_width=True, type="primary" if current_page == 'create_handoff' else "secondary"):
                 st.session_state.page = 'create_handoff'
                 st.rerun()
 
-            if st.button("📋 All Handoffs", use_container_width=True):
-                st.session_state.page = 'dashboard'
+            if st.button("👥 Patients", use_container_width=True, type="primary" if current_page == 'patients' else "secondary"):
+                st.session_state.page = 'patients'
                 st.rerun()
+
+            if st.button("📊 Analytics", use_container_width=True, type="primary" if current_page == 'analytics' else "secondary"):
+                st.session_state.page = 'analytics'
+                st.rerun()
+
+            if st.button("📝 Audit Trail", use_container_width=True, type="primary" if current_page == 'audit_trail' else "secondary"):
+                st.session_state.page = 'audit_trail'
+                st.rerun()
+
+            st.markdown("---")
+
+            # Quick stats in sidebar
+            c = conn.cursor()
+            c.execute("SELECT COUNT(*) FROM handoffs WHERE status='active'")
+            active_count = c.fetchone()[0]
+            c.execute("SELECT COUNT(*) FROM patients")
+            patient_count = c.fetchone()[0]
+
+            st.markdown(f"""
+            **Quick Stats**
+            - Active Handoffs: **{active_count}**
+            - Total Patients: **{patient_count}**
+            """)
 
             st.markdown("---")
 
@@ -298,7 +323,7 @@ def main():
 
         st.markdown("---")
         st.markdown("### About")
-        st.info("**EclipseLink AI™**\n\nVoice-enabled clinical handoff platform with AI-powered SBAR generation.\n\n*Rohimaya Health AI*")
+        st.info("**EclipseLink AI™**\n\nVoice-enabled clinical handoff platform with AI-powered SBAR generation.\n\n*Rohimaya Health AI*\n\n🔒 HIPAA Compliant")
 
     # Main content
     if not st.session_state.authenticated:
@@ -309,13 +334,20 @@ def main():
         if page == 'dashboard':
             dashboard_page()
         elif page == 'create_handoff':
-            # Import create handoff page
             from pages import create_handoff
             create_handoff.show()
         elif page == 'view_handoff':
-            # Import view handoff page
             from pages import view_handoff
             view_handoff.show()
+        elif page == 'patients':
+            from pages import patients
+            patients.show()
+        elif page == 'analytics':
+            from pages import analytics
+            analytics.show()
+        elif page == 'audit_trail':
+            from pages import audit_trail
+            audit_trail.show()
 
 if __name__ == "__main__":
     main()
