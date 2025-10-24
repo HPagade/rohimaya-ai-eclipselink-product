@@ -18,6 +18,10 @@ import sbarRoutes from './routes/sbar.routes';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { generalRateLimit } from './middleware/rate-limit.middleware';
 
+// Import workers
+import transcriptionWorker from './workers/transcription.worker';
+import sbarGenerationWorker from './workers/sbar-generation.worker';
+
 /**
  * EclipseLink AI Backend Server
  * Express.js + TypeScript
@@ -208,19 +212,27 @@ function startServer() {
     console.log(`    PUT    /v1/sbar/:id`);
     console.log(`    POST   /v1/sbar/:id/export`);
     console.log('');
+    console.log('Background Workers:');
+    console.log(`    ✓ Transcription Worker (concurrency: 5)`);
+    console.log(`    ✓ SBAR Generation Worker (concurrency: 3)`);
+    console.log('');
     console.log('TODO: Implement EHR and analytics endpoints');
     console.log('');
   });
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server and workers');
+  await transcriptionWorker.close();
+  await sbarGenerationWorker.close();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
+process.on('SIGINT', async () => {
+  console.log('SIGINT signal received: closing HTTP server and workers');
+  await transcriptionWorker.close();
+  await sbarGenerationWorker.close();
   process.exit(0);
 });
 

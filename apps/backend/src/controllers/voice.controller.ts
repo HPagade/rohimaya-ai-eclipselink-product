@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { UUID } from '@eclipselink/types';
 import { NotFoundError, ValidationError } from '../middleware/error.middleware';
+import { transcriptionQueue } from '../config/queue.config';
 
 /**
  * Voice Recording Controller
@@ -26,36 +27,44 @@ export async function uploadVoiceRecording(req: Request, res: Response): Promise
   }
 
   try {
-    // TODO: Replace with actual file upload and job queuing
-    // 1. Validate handoff exists
+    // Generate recording ID
+    const recordingId = generateUUID();
+    const audioFormat = audioFile.mimetype.split('/')[1] || 'webm';
+    const filePath = `2025/10/${req.user!.facilityId}/${recordingId}.${audioFormat}`;
+
+    // TODO: Validate handoff exists
     // const handoff = await db.query('SELECT * FROM handoffs WHERE id = $1', [handoffId]);
     // if (!handoff.rows.length) {
     //   throw new NotFoundError('handoff', handoffId);
     // }
 
-    // 2. Upload file to Cloudflare R2
-    // const filePath = `${facilityId}/${new Date().getFullYear()}/${handoffId}/${recordingId}.${audioFile.mimetype.split('/')[1]}`;
+    // TODO: Upload file to Cloudflare R2
     // await r2Client.upload(filePath, audioFile.buffer);
 
-    // 3. Create voice_recording record
+    // TODO: Create voice_recording record
     // const recording = await db.query(
-    //   'INSERT INTO voice_recordings (...) VALUES (...) RETURNING *',
-    //   [recordingId, handoffId, duration, audioFile.size, ...]
+    //   'INSERT INTO voice_recordings (id, handoff_id, uploaded_by, duration, file_size, audio_format, file_path, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *',
+    //   [recordingId, handoffId, req.user!.userId, duration, audioFile.size, audioFormat, filePath, 'uploaded']
     // );
 
-    // 4. Queue transcription job with BullMQ
-    // await transcriptionQueue.add('transcribe-audio', {
-    //   recordingId,
-    //   handoffId,
-    //   filePath,
-    //   duration
-    // });
+    // Queue transcription job with BullMQ
+    const transcriptionJob = await transcriptionQueue.add('transcribe-audio', {
+      recordingId,
+      handoffId,
+      filePath,
+      duration: Number(duration),
+      audioFormat,
+      facilityId: req.user!.facilityId
+    }, {
+      priority: 1, // High priority for transcription
+      removeOnComplete: { count: 100, age: 24 * 60 * 60 }, // Keep last 100 jobs for 24 hours
+      removeOnFail: false // Keep failed jobs for debugging
+    });
 
-    // 5. Update handoff status
+    console.log(`[Voice Controller] Queued transcription job ${transcriptionJob.id} for recording ${recordingId}`);
+
+    // TODO: Update handoff status
     // await db.query('UPDATE handoffs SET status = $1 WHERE id = $2', ['recording', handoffId]);
-
-    // Stub response
-    const recordingId = generateUUID();
 
     res.status(201).json({
       success: true,
@@ -64,10 +73,10 @@ export async function uploadVoiceRecording(req: Request, res: Response): Promise
         handoffId,
         duration: Number(duration),
         fileSize: audioFile.size,
-        audioFormat: audioFile.mimetype.split('/')[1] || 'webm',
+        audioFormat,
         status: 'uploaded',
-        filePath: `2025/10/${req.user!.facilityId}/${recordingId}.webm`,
-        transcriptionJobId: `job_${generateUUID()}`,
+        filePath,
+        transcriptionJobId: transcriptionJob.id,
         estimatedProcessingTime: Math.ceil(Number(duration) / 6), // Rough estimate: 1/6 of audio duration
         uploadedAt: new Date().toISOString(),
         message: 'Voice recording uploaded successfully. Transcription will begin shortly.'
