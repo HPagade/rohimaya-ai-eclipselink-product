@@ -1,0 +1,53 @@
+{
+  "name": "eclipselink-ai",
+  "version": "1.0.0",
+  "description": "EclipseLink AI™ - Voice-enabled clinical handoff platform with AI-powered SBAR generation",
+  "private": true,
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "build": "npm run build --workspaces",
+    "build:frontend": "npm run build --workspace=apps/frontend",
+    "build:backend": "npm run build --workspace=apps/backend",
+    "test": "npm run test --workspaces",
+    "test:frontend": "npm run test --workspace=apps/frontend",
+    "test:backend": "npm run test --workspace=apps/backend",
+    "lint": "npm run lint --workspaces",
+    "lint:fix": "npm run lint:fix --workspaces",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
+    "postinstall": "npm run build --workspace=packages/types --workspace=packages/config --workspace=packages/utils"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HPagade/rohimaya-ai-eclipselink-product.git"
+  },
+  "keywords": [
+    "healthcare",
+    "clinical-handoff",
+    "SBAR",
+    "AI",
+    "voice-to-text",
+    "HIPAA",
+    "EHR",
+    "Azure-OpenAI"
+  ],
+  "author": "Rohimaya Health AI",
+  "license": "PROPRIETARY"
+}
