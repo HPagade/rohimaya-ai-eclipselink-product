@@ -18,7 +18,7 @@ Transforming 3-5 minute voice recordings into comprehensive SBAR reports in unde
 
 ## 🦚 About Rohimaya Health AI
 
-EclipseLink AI™ is the flagship product of **Rohimaya Health AI**, a healthcare technology company dedicated to improving clinical communication and patient safety.
+EclipseLink AI™ is the flagship product of **Rohimaya Health AI**, a healthcare technology company dedicated to improving clinical communication and patient safety through AI-powered solutions.
 
 **Founded by:**
 - **Hannah Kraulik Pagade** - CEO
@@ -76,6 +76,13 @@ EclipseLink AI™ is the flagship product of **Rohimaya Health AI**, a healthcar
 - Emergency Medical Technicians (EMT)
 - Radiologic/Surgical/Lab/Pharmacy Technicians
 
+**Total Addressable Market (TAM):** $18.9 billion healthcare communication market
+
+**Target Facilities:**
+- 6,090 hospitals
+- 87,000+ nursing homes
+- 13,000+ clinics in the US
+
 ---
 
 ## 🚀 Quick Start
@@ -90,33 +97,22 @@ EclipseLink AI™ is the flagship product of **Rohimaya Health AI**, a healthcar
 
 ```bash
 # Clone from GitHub
-git clone https://github.com/YOUR_USERNAME/rohimaya-ai-eclipselink-product.git
+git clone https://github.com/HPagade/rohimaya-ai-eclipselink-product.git
 cd rohimaya-ai-eclipselink-product
 
 # OR clone from GitLab
-git clone https://gitlab.com/YOUR_USERNAME/rohimaya-ai-eclipselink-product.git
+git clone https://gitlab.com/HPagade/rohimaya-ai-eclipselink-product.git
 cd rohimaya-ai-eclipselink-product
 ```
 
-### 2. Database Setup
+### 2. Install Dependencies
 
 ```bash
-# Set your Supabase database URL
-export DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT].supabase.co:5432/postgres"
-
-# Run the database setup script
-bash database/setup.sh
+# Install all dependencies
+npm install
 ```
 
-This will:
-- ✅ Create 15 core database tables
-- ✅ Enable Row-Level Security (RLS)
-- ✅ Configure audit logging triggers
-- ✅ Set up HIPAA-compliant security policies
-
-### 3. Environment Variables
-
-Create `.env` files with your configuration:
+### 3. Environment Configuration
 
 ```bash
 # Copy environment templates
@@ -134,13 +130,24 @@ Required environment variables:
 - `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint URL
 - `CLOUDFLARE_R2_ACCESS_KEY` - Cloudflare R2 access key
 - `CLOUDFLARE_R2_SECRET_KEY` - Cloudflare R2 secret key
+- `JWT_SECRET` - Secret for JWT token signing
+- `UPSTASH_REDIS_URL` - Redis connection URL
 
-### 4. Install Dependencies
+### 4. Database Setup
 
 ```bash
-# Install all dependencies
-npm install
+# Set your Supabase database URL
+export DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT].supabase.co:5432/postgres"
+
+# Run the database setup script
+bash database/setup.sh
 ```
+
+This will:
+- ✅ Create 15 core database tables
+- ✅ Enable Row-Level Security (RLS)
+- ✅ Configure audit logging triggers
+- ✅ Set up HIPAA-compliant security policies
 
 ### 5. Start Development
 
@@ -164,24 +171,24 @@ Open your browser and navigate to:
 
 ## 📚 Documentation
 
-### Architecture Documentation
-- [Part 1: System Architecture Overview](eclipse-ai-part1-architecture.md)
-- [Part 2: Repository Structure & Setup](eclipse-ai-part2-repository-setup.md)
-- [Part 3: Database Schema & ERD](eclipse-ai-part3-database-schema.md)
+### Core Documentation (Parts 1-4)
 
-### Database Documentation
-- [Database Schema](database/schema.sql)
-- [Core Tables Migration](database/migrations/001_core_tables.sql)
-- [Audit & Notifications Migration](database/migrations/002_audit_and_notifications.sql)
-- [Functions & Triggers](database/functions/triggers.sql)
+#### Architecture & Repository Setup
+- **[Part 1: System Architecture Overview](eclipse-ai-part1-architecture.md)** - Complete system architecture, tech stack, and design decisions
+- **[Part 2: Repository Structure & Setup](eclipse-ai-part2-repository-setup.md)** - Detailed setup instructions, development workflow, and best practices
 
-### API Documentation
-Coming soon - API endpoints, request/response examples, authentication
+#### Database & Backend APIs
+- **[Part 3: Database Schema & ERD](eclipse-ai-part3-database-schema.md)** - Complete database schema with 15 tables, relationships, indexes, and RLS policies
+- **[Part 4a: API Authentication & Authorization](eclipse-ai-part4a-api-auth.md)** - JWT authentication, RBAC, security headers, and all auth endpoints
+- **[Part 4b: Handoff & Voice Recording APIs](eclipse-ai-part4b-handoff-voice.md)** - Handoff lifecycle, voice upload/processing, and polling strategies
+- **[Part 4c: Patient, SBAR & EHR APIs](eclipse-ai-part4c-patient-sbar-ehr.md)** - Patient management, SBAR generation, and EHR integration endpoints
+- **[Part 4d: Error Handling & Rate Limiting](eclipse-ai-part4d-error-handling-examples.md)** - Comprehensive error codes, validation, retry logic, and examples
 
-### Integration Guides
-- **Epic EHR** - FHIR R4 integration guide
-- **Cerner** - FHIR R4 integration guide
-- **MEDITECH** - HL7 v2 integration guide
+#### Role-Specific Guides
+- **[Developer Guide](README-DEVELOPERS.md)** - Developer onboarding, local setup, testing, and development workflow
+- **[Internal Team Guide](README-INTERNAL.md)** - Team processes, deployment procedures, and incident response
+- **[Investor Overview](README-INVESTORS.md)** - Business model, market opportunity, and growth metrics
+- **[User Guide](README-USERS.md)** - End-user documentation, feature guides, and FAQ
 
 ---
 
@@ -190,81 +197,83 @@ Coming soon - API endpoints, request/response examples, authentication
 ### Tech Stack
 
 **Frontend:**
-- Next.js 14 (React 18)
-- TypeScript
+- Next.js 14 with App Router (React 18)
+- TypeScript 5.3+
 - Tailwind CSS + shadcn/ui
 - Zustand (state management)
 - React Query (server state)
 - PWA support (offline-first)
 
 **Backend:**
-- Node.js + Express
-- TypeScript
-- Supabase (PostgreSQL + Auth)
-- Redis (Upstash) for caching
-- BullMQ for job queues
+- Node.js 18+ + Express.js
+- TypeScript 5.3+
+- Supabase (PostgreSQL 15+ with Auth)
+- Upstash Redis (caching & sessions)
+- BullMQ (job queues)
+- Winston (logging)
 
 **AI Services:**
-- Azure OpenAI Whisper (speech-to-text)
-- Azure OpenAI GPT-4 (SBAR generation)
+- Azure OpenAI Whisper (speech-to-text transcription)
+- Azure OpenAI GPT-4-32k (SBAR generation)
 
 **Storage:**
 - Cloudflare R2 (voice recordings, documents)
-- PostgreSQL (structured data)
+- PostgreSQL (structured data, metadata)
 
 **Deployment:**
-- Cloudflare Pages (frontend)
-- Railway (backend)
-- Supabase (database)
+- Frontend: Cloudflare Pages
+- Backend: Railway
+- Database: Supabase
+- CDN & Security: Cloudflare
 
 ### Database Schema
 
 **15 Core Tables:**
 1. `facilities` - Healthcare facilities
 2. `staff` - Healthcare professionals
-3. `patients` - Patient records
+3. `patients` - Patient records (PHI)
 4. `handoffs` - Clinical handoffs
 5. `voice_recordings` - Audio file metadata
 6. `ai_generations` - AI processing records
 7. `sbar_reports` - Generated SBAR reports
-8. `handoff_assignments` - Staff-to-handoff mapping
-9. `audit_logs` - HIPAA audit trail
+8. `handoff_assignments` - Staff-to-handoff mapping (N:N)
+9. `audit_logs` - HIPAA audit trail (7-year retention)
 10. `notifications` - In-app notifications
-11. `ehr_connections` - EHR integration config
-12. `ehr_sync_logs` - EHR sync history
-13. `user_sessions` - Active sessions
+11. `ehr_connections` - EHR integration configurations
+12. `ehr_sync_logs` - EHR synchronization history
+13. `user_sessions` - Active user sessions (JWT)
 14. `feature_flags` - Feature toggles
-15. `system_settings` - App configuration
+15. `system_settings` - Application configuration
 
-See [Database Schema Documentation](eclipse-ai-part3-database-schema.md) for complete ERD and details.
+See [Part 3: Database Schema](eclipse-ai-part3-database-schema.md) for complete ERD, relationships, and SQL.
 
 ### Data Flow
 
 ```
 Clinician Records Voice (3-5 min)
         ↓
-Upload to Cloudflare R2
+Upload to Cloudflare R2 (2-5 sec)
         ↓
 Queue Transcription Job (BullMQ)
         ↓
-Azure Whisper API (15-30 sec)
+Azure Whisper API Transcription (15-30 sec)
         ↓
-Store Transcription
+Store Transcription in Database
         ↓
-Queue SBAR Generation (BullMQ)
+Queue SBAR Generation Job (BullMQ)
         ↓
-Azure GPT-4 API (10-20 sec)
+Azure GPT-4 SBAR Generation (10-20 sec)
         ↓
 Store SBAR Report
         ↓
-Notify Clinician
+Notify Clinician (Real-time)
         ↓
-Review & Approve
+Review & Approve SBAR
         ↓
 Export to EHR (Optional)
 ```
 
-**Total Processing Time:** 30-60 seconds from upload to SBAR
+**Total Processing Time:** 30-60 seconds from upload to SBAR generation
 
 ---
 
@@ -272,26 +281,124 @@ Export to EHR (Optional)
 
 ```
 rohimaya-ai-eclipselink-product/
-├── database/                      # Database files
-│   ├── schema.sql                # Complete schema
-│   ├── migrations/               # SQL migrations
-│   ├── seeds/                    # Seed data
-│   ├── functions/                # Database functions
-│   └── setup.sh                  # Setup script
+├── backend/                          # Backend API (NEW)
+│   ├── src/
+│   │   ├── config/                  # Configuration files
+│   │   ├── middleware/              # Express middleware
+│   │   ├── routes/                  # API routes
+│   │   ├── services/                # Business logic
+│   │   ├── models/                  # TypeScript types
+│   │   ├── utils/                   # Helper functions
+│   │   ├── jobs/                    # BullMQ jobs
+│   │   └── index.ts                 # Entry point
+│   ├── database/
+│   │   ├── migrations/              # Database migrations
+│   │   ├── seeds/                   # Seed data
+│   │   └── schema.sql              # Complete schema
+│   ├── tests/                       # Test files
+│   ├── package.json
+│   └── tsconfig.json
 │
-├── eclipse-ai-part1-architecture.md       # Architecture docs
-├── eclipse-ai-part2-repository-setup.md   # Setup guide
-├── eclipse-ai-part3-database-schema.md    # Database docs
+├── docs/                            # Documentation
+│   ├── eclipse-ai-part1-architecture.md
+│   ├── eclipse-ai-part2-repository-setup.md
+│   ├── eclipse-ai-part3-database-schema.md
+│   ├── eclipse-ai-part4a-api-auth.md
+│   ├── eclipse-ai-part4b-handoff-voice.md
+│   ├── eclipse-ai-part4c-patient-sbar-ehr.md
+│   └── eclipse-ai-part4d-error-handling-examples.md
 │
-├── .env.example                  # Environment template
-├── .gitignore                    # Git ignore file
-├── README.md                     # This file
-└── package.json                  # Project dependencies
+├── README-DEVELOPERS.md             # Developer guide
+├── README-INTERNAL.md               # Internal team guide
+├── README-INVESTORS.md              # Investor overview
+├── README-USERS.md                  # User guide
+│
+├── .env.example                     # Environment template
+├── .gitignore                       # Git ignore file
+├── README.md                        # This file
+└── package.json                     # Root package.json
 ```
 
 ---
 
+## 🛠️ Development
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev                # Start both frontend and backend
+npm run dev:frontend       # Start frontend only (port 3000)
+npm run dev:backend        # Start backend only (port 4000)
+
+# Building
+npm run build             # Build all packages
+npm run build:frontend    # Build frontend for production
+npm run build:backend     # Build backend for production
+
+# Testing
+npm test                  # Run all tests
+npm run test:watch        # Run tests in watch mode
+npm run test:coverage     # Generate coverage report
+
+# Code Quality
+npm run lint              # Run ESLint
+npm run lint:fix          # Fix ESLint issues
+npm run format            # Format code with Prettier
+npm run type-check        # TypeScript type checking
+
+# Database
+npm run migrate           # Run database migrations
+npm run seed              # Seed database with test data
+npm run db:reset          # Reset database (⚠️ deletes all data)
+```
+
+### Git Workflow
+
+We use **Git Flow** for branch management:
+
+```
+main                    (production-ready code)
+├── develop             (integration branch)
+│   ├── feature/*      (new features)
+│   ├── bugfix/*       (bug fixes)
+│   └── hotfix/*       (emergency fixes)
+```
+
+### Commit Convention
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```bash
+# Format: <type>(<scope>): <subject>
+
+# Examples:
+git commit -m "feat(voice): add waveform visualization"
+git commit -m "fix(auth): resolve token refresh issue"
+git commit -m "docs(api): update handoff endpoints"
+git commit -m "chore(deps): update dependencies"
+```
+
+**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`
+
+---
+
 ## 🔒 Privacy & Security
+
+### HIPAA Compliance
+
+EclipseLink AI is built with HIPAA compliance at its core:
+
+- ✅ **End-to-end encryption** (AES-256 at rest, TLS 1.3 in transit)
+- ✅ **Row-Level Security (RLS)** for database-level data isolation
+- ✅ **Comprehensive audit logging** with 7-year retention
+- ✅ **PHI access tracking** - every access logged and monitored
+- ✅ **Business Associate Agreements (BAA)** with all third-party services
+- ✅ **Regular security audits** and penetration testing
+- ✅ **Role-Based Access Control (RBAC)** with granular permissions
+- ✅ **Multi-factor authentication (MFA)** support
+- ✅ **Session management** with automatic timeout
+- ✅ **Encrypted backups** with point-in-time recovery
 
 ### Making Your Repository Private
 
@@ -310,191 +417,119 @@ rohimaya-ai-eclipselink-product/
 
 ### Security Best Practices
 
-✅ **Never commit secrets** - Use environment variables
+✅ **Never commit secrets** - Use environment variables and `.env` files (never commit `.env`)
 ✅ **Enable 2FA** on GitHub/GitLab accounts
 ✅ **Use SSH keys** for git operations
 ✅ **Rotate secrets** regularly (every 90 days)
 ✅ **Review access logs** monthly
-✅ **Enable branch protection** on main branch
+✅ **Enable branch protection** on main and develop branches
 ✅ **Require code reviews** before merging
-✅ **Run security scans** in CI/CD pipeline
-
----
-
-## 📊 Database Setup Details
-
-### Database Tables Created
-
-After running `database/setup.sh`, you will have:
-
-**Core Tables:**
-- ✅ `facilities` - Healthcare facilities (6,000+ facilities nationwide)
-- ✅ `staff` - Healthcare professionals (9M+ users)
-- ✅ `patients` - Patient records (50M+ patients)
-- ✅ `handoffs` - Clinical handoffs (100M+ handoffs/year)
-
-**Processing Tables:**
-- ✅ `voice_recordings` - Audio metadata (100M+ recordings)
-- ✅ `ai_generations` - AI transcriptions and SBAR generation
-- ✅ `sbar_reports` - Generated reports
-
-**Support Tables:**
-- ✅ `handoff_assignments` - Staff assignments
-- ✅ `notifications` - Real-time notifications
-- ✅ `audit_logs` - HIPAA-compliant audit trail
-
-**Integration Tables:**
-- ✅ `ehr_connections` - EHR system configurations
-- ✅ `ehr_sync_logs` - Synchronization history
-
-**System Tables:**
-- ✅ `user_sessions` - Active user sessions
-- ✅ `feature_flags` - Feature toggles for gradual rollout
-- ✅ `system_settings` - Application configuration
-
-### Verify Database Setup
-
-```bash
-# Check all tables are created
-psql $DATABASE_URL -c "\dt"
-
-# Check row-level security is enabled
-psql $DATABASE_URL -c "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public';"
-
-# Check triggers are created
-psql $DATABASE_URL -c "SELECT trigger_name, event_object_table FROM information_schema.triggers;"
-```
-
-### Database Features
-
-**🔐 Security:**
-- Row-Level Security (RLS) enabled on all tables
-- Facility-level data isolation
-- HIPAA-compliant audit logging
-- PHI access tracking
-
-**⚡ Performance:**
-- Optimized indexes on frequently queried columns
-- Full-text search on names and content
-- Partitioning ready for large tables
-- Connection pooling via Supavisor
-
-**📊 Scalability:**
-- Support for 100M+ handoffs
-- Horizontal read replicas
-- Automatic backups (7-day retention)
-- Point-in-time recovery
-
----
-
-## 🛠️ Development
-
-### Available Scripts
-
-```bash
-# Development
-npm run dev                # Start both frontend and backend
-npm run dev:frontend       # Start frontend only
-npm run dev:backend        # Start backend only
-
-# Building
-npm run build             # Build all packages
-npm run build:frontend    # Build frontend
-npm run build:backend     # Build backend
-
-# Testing
-npm test                  # Run all tests
-npm run test:watch        # Run tests in watch mode
-npm run test:coverage     # Generate coverage report
-
-# Code Quality
-npm run lint              # Run ESLint
-npm run format            # Format code with Prettier
-npm run type-check        # TypeScript type checking
-
-# Database
-npm run migrate           # Run database migrations
-npm run seed              # Seed database with test data
-npm run db:reset          # Reset database (⚠️ deletes all data)
-```
-
-### Database Management
-
-```bash
-# Run database setup
-export DATABASE_URL="your-supabase-url"
-bash database/setup.sh
-
-# Connect to database
-psql $DATABASE_URL
-
-# View all tables
-\dt
-
-# View table structure
-\d+ patients
-
-# Query data
-SELECT * FROM facilities LIMIT 5;
-```
+✅ **Run security scans** in CI/CD pipeline (Snyk, npm audit)
+✅ **Use least privilege** principle for all access
+✅ **Monitor dependencies** for vulnerabilities
 
 ---
 
 ## 🌐 Deployment
 
-### Production Deployment
+### Production Environments
 
-**Frontend (Cloudflare Pages):**
-```bash
-# Build frontend
-npm run build:frontend
+- **Frontend:** [app.eclipselink.ai](https://app.eclipselink.ai) (Cloudflare Pages)
+- **Backend API:** [api.eclipselink.ai](https://api.eclipselink.ai) (Railway)
+- **Database:** Supabase (PostgreSQL with point-in-time recovery)
+- **Storage:** Cloudflare R2 (voice recordings, documents)
+- **CDN:** Cloudflare (global edge network)
 
-# Deploy to Cloudflare Pages
-# Automatic via GitHub Actions on push to main
-```
+### CI/CD Pipeline
 
-**Backend (Railway):**
-```bash
-# Build backend
-npm run build:backend
-
-# Deploy to Railway
-# Automatic via Railway GitHub integration
-```
-
-**Database (Supabase):**
-- Migrations run automatically via CI/CD
-- Point-in-time recovery enabled
-- Daily automated backups
+Automated testing and deployment via:
+- **GitHub Actions** (for GitHub repository)
+- **GitLab CI** (for GitLab repository)
 
 ### Environment Checklist
 
 Before deploying to production:
-- [ ] All environment variables configured
+- [ ] All environment variables configured in production
 - [ ] Database migrations run successfully
-- [ ] RLS policies tested
-- [ ] Audit logging verified
-- [ ] SSL certificates configured
-- [ ] Domain names configured
-- [ ] CORS settings updated
-- [ ] Rate limiting configured
-- [ ] Monitoring tools configured (Sentry, LogTail)
-- [ ] Backup strategy tested
+- [ ] RLS policies tested and verified
+- [ ] Audit logging verified and operational
+- [ ] SSL certificates configured and auto-renewing
+- [ ] Domain names configured with DNS
+- [ ] CORS settings updated for production domains
+- [ ] Rate limiting configured and tested
+- [ ] Monitoring tools configured (Sentry, LogTail, Uptime monitoring)
+- [ ] Backup strategy tested and verified
+- [ ] Load testing completed
+- [ ] Security headers configured (CSP, HSTS, X-Frame-Options)
+- [ ] DDoS protection enabled (Cloudflare)
+- [ ] API documentation published
 
 ---
 
-## 🤝 Support
+## 📊 Roadmap
+
+### Phase 1: MVP (Current - Q1 2025)
+- [x] Repository structure and architecture
+- [x] Comprehensive documentation (Parts 1-4)
+- [x] Database schema design
+- [ ] Backend API implementation
+- [ ] Frontend core components
+- [ ] Azure OpenAI integration
+- [ ] Basic EHR integration (Epic FHIR)
+- [ ] HIPAA compliance certification prep
+
+### Phase 2: Beta Launch (Q2 2025)
+- [ ] Beta testing with 3-5 pilot facilities
+- [ ] Full Epic EHR integration
+- [ ] Cerner and MEDITECH integrations
+- [ ] Mobile app optimization (iOS/Android PWA)
+- [ ] HIPAA audit and certification
+- [ ] Advanced analytics dashboard
+- [ ] Multi-facility management
+
+### Phase 3: General Availability (Q3 2025)
+- [ ] Public launch and marketing campaign
+- [ ] Additional EHR integrations (Allscripts, PointClickCare, WellSky)
+- [ ] Advanced AI features (custom SBAR templates, auto-suggestions)
+- [ ] Team collaboration features (shared handoffs, comments)
+- [ ] Multi-language support (Spanish, Mandarin)
+- [ ] Telehealth integration
+
+### Phase 4: Scale & Enterprise (Q4 2025)
+- [ ] Enterprise features (SSO, SAML, advanced RBAC)
+- [ ] Integration with PlumeDose AI (medication management)
+- [ ] Advanced reporting and analytics
+- [ ] API for third-party integrations
+- [ ] International expansion (Canada, EU)
+- [ ] AI model fine-tuning with real-world data
+
+---
+
+## 🤝 Support & Contact
 
 ### Getting Help
 
-- **Documentation:** See the `docs/` folder
-- **Issues:** Report bugs or request features in Issues
-- **Email:** support@rohimaya.ai
-- **Website:** https://rohimaya.ai
+- **Documentation:** Comprehensive docs in this repository
+- **Developer Guide:** [README-DEVELOPERS.md](README-DEVELOPERS.md)
+- **User Guide:** [README-USERS.md](README-USERS.md)
+- **Issues:** Report bugs or request features via GitHub/GitLab Issues
+- **Email Support:** support@rohimaya.ai
+
+### Contact Information
+
+**Rohimaya Health AI**
+
+**Hannah Kraulik Pagade** - CEO
+**Prasad Pagade** - CTO
+
+📧 Email: info@rohimaya.ai
+🌐 Website: https://rohimaya.ai
+🦚 Product: EclipseLink AI™
+💼 LinkedIn: [Rohimaya Health AI](https://linkedin.com/company/rohimaya-health-ai)
 
 ### Contributing
 
-This is a proprietary product. For contribution inquiries, please contact the founders.
+This is proprietary software. For contribution or partnership inquiries, please contact the founders directly.
 
 ---
 
@@ -510,44 +545,15 @@ For licensing inquiries: licensing@rohimaya.ai
 
 ---
 
-## 🎯 Roadmap
+## 🙏 Acknowledgments
 
-### Q1 2025
-- [x] Database schema design
-- [x] Core architecture documentation
-- [ ] MVP development
-- [ ] HIPAA compliance certification prep
-
-### Q2 2025
-- [ ] Beta testing with pilot facilities
-- [ ] Epic EHR integration
-- [ ] Mobile app release (iOS/Android)
-- [ ] HIPAA audit and certification
-
-### Q3 2025
-- [ ] General availability launch
-- [ ] Cerner and MEDITECH integrations
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support
-
-### Q4 2025
-- [ ] AI improvements and fine-tuning
-- [ ] Custom SBAR templates
-- [ ] Team collaboration features
-- [ ] Enterprise features (SSO, advanced reporting)
-
----
-
-## 📞 Contact
-
-**Rohimaya Health AI**
-
-**Hannah Kraulik Pagade** - CEO
-**Prasad Pagade** - CTO
-
-📧 Email: info@rohimaya.ai
-🌐 Website: https://rohimaya.ai
-🦚 Product: EclipseLink AI™
+Special thanks to:
+- **Azure OpenAI** team for cutting-edge AI services
+- **Supabase** for robust database infrastructure
+- **Cloudflare** for edge network, storage, and security
+- **Railway** for reliable backend hosting
+- **Upstash** for serverless Redis
+- The **open-source community** for amazing tools and libraries
 
 ---
 
@@ -556,5 +562,7 @@ For licensing inquiries: licensing@rohimaya.ai
 Made with ❤️ by Rohimaya Health AI
 
 **EclipseLink AI™** - Transforming Clinical Handoffs with AI
+
+*Improving Patient Safety, One Handoff at a Time*
 
 </div>
