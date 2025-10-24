@@ -9,6 +9,10 @@ dotenv.config();
 
 // Import routes
 import authRoutes from './routes/auth.routes';
+import handoffRoutes from './routes/handoff.routes';
+import voiceRoutes from './routes/voice.routes';
+import patientRoutes from './routes/patient.routes';
+import sbarRoutes from './routes/sbar.routes';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
@@ -131,12 +135,12 @@ app.get('/v1', (req: Request, res: Response) => {
 
 // Mount routes
 app.use('/v1/auth', authRoutes);
+app.use('/v1/handoffs', handoffRoutes);
+app.use('/v1/voice', voiceRoutes);
+app.use('/v1/patients', patientRoutes);
+app.use('/v1/sbar', sbarRoutes);
 
 // TODO: Add remaining route modules
-// app.use('/v1/handoffs', handoffRoutes);
-// app.use('/v1/patients', patientRoutes);
-// app.use('/v1/voice', voiceRoutes);
-// app.use('/v1/sbar', sbarRoutes);
 // app.use('/v1/ehr', ehrRoutes);
 // app.use('/v1/analytics', analyticsRoutes);
 
@@ -168,13 +172,43 @@ function startServer() {
     console.log(`✓ API Docs:     http://localhost:${PORT}/v1`);
     console.log('');
     console.log('Available Endpoints:');
-    console.log(`  - POST   /v1/auth/register`);
-    console.log(`  - POST   /v1/auth/login`);
-    console.log(`  - POST   /v1/auth/refresh`);
-    console.log(`  - POST   /v1/auth/logout`);
-    console.log(`  - GET    /v1/auth/me`);
     console.log('');
-    console.log('TODO: Implement remaining endpoints (handoffs, patients, voice, sbar, ehr)');
+    console.log('  Auth:');
+    console.log(`    POST   /v1/auth/register`);
+    console.log(`    POST   /v1/auth/login`);
+    console.log(`    POST   /v1/auth/refresh`);
+    console.log(`    POST   /v1/auth/logout`);
+    console.log(`    GET    /v1/auth/me`);
+    console.log('');
+    console.log('  Handoffs:');
+    console.log(`    POST   /v1/handoffs`);
+    console.log(`    GET    /v1/handoffs`);
+    console.log(`    GET    /v1/handoffs/:id`);
+    console.log(`    PUT    /v1/handoffs/:id`);
+    console.log(`    POST   /v1/handoffs/:id/assign`);
+    console.log(`    POST   /v1/handoffs/:id/complete`);
+    console.log(`    DELETE /v1/handoffs/:id`);
+    console.log('');
+    console.log('  Voice Recordings:');
+    console.log(`    POST   /v1/voice/upload`);
+    console.log(`    GET    /v1/voice/:id`);
+    console.log(`    GET    /v1/voice/:id/download`);
+    console.log(`    GET    /v1/voice/:id/status`);
+    console.log(`    DELETE /v1/voice/:id`);
+    console.log('');
+    console.log('  Patients:');
+    console.log(`    GET    /v1/patients`);
+    console.log(`    GET    /v1/patients/:id`);
+    console.log(`    GET    /v1/patients/:id/handoffs`);
+    console.log('');
+    console.log('  SBAR Reports:');
+    console.log(`    GET    /v1/sbar/:handoffId`);
+    console.log(`    GET    /v1/sbar/:handoffId/versions`);
+    console.log(`    GET    /v1/sbar/:id/compare`);
+    console.log(`    PUT    /v1/sbar/:id`);
+    console.log(`    POST   /v1/sbar/:id/export`);
+    console.log('');
+    console.log('TODO: Implement EHR and analytics endpoints');
     console.log('');
   });
 }
