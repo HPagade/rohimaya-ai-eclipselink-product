@@ -43,10 +43,16 @@ Calculate potential time savings and cost reduction for facilities.
 cd demos
 ```
 
-2. **Install dependencies:**
+2. **Install dependencies (only 4 packages needed):**
 ```bash
 pip install -r requirements.txt
 ```
+
+Required packages:
+- `streamlit` - Web framework
+- `pandas` - Data manipulation
+- `plotly` - Interactive charts
+- `numpy` - Numerical operations
 
 ### Running Locally
 
@@ -111,15 +117,13 @@ demos/
 ├── 1_Voice_to_SBAR.py          # Voice-to-SBAR demo
 ├── 2_Clinical_Dashboard.py      # Clinical dashboard demo
 ├── 3_ROI_Calculator.py          # ROI calculator demo
-├── requirements.txt             # Python dependencies
+├── requirements.txt             # Python dependencies (4 packages only)
 ├── README.md                    # This file
-├── .streamlit/
-│   └── config.toml             # Streamlit configuration
-├── assets/
-│   ├── audio/                  # Sample audio files (optional)
-│   └── images/                 # Images and logos (optional)
-└── data/
-    └── sample_data.csv         # Sample data files (optional)
+├── DEPLOYMENT.md                # Streamlit Cloud deployment guide
+├── run_demos.sh                 # Quick start script (Unix)
+├── run_demos.bat                # Quick start script (Windows)
+└── .streamlit/
+    └── config.toml             # Streamlit configuration
 ```
 
 ## 🎨 Customization
