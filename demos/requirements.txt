@@ -1,0 +1,28 @@
+# Streamlit and Core Dependencies
+streamlit==1.31.0
+python-dotenv==1.0.0
+
+# Data Processing
+pandas==2.2.0
+numpy==1.26.3
+
+# Visualization
+plotly==5.18.0
+altair==5.2.0
+
+# HTTP Requests
+requests==2.31.0
+
+# Audio Processing (for voice demo)
+soundfile==0.12.1
+sounddevice==0.4.6
+
+# Date/Time
+python-dateutil==2.8.2
+
+# UI Components
+streamlit-option-menu==0.3.12
+streamlit-extras==0.3.6
+
+# Authentication
+pyjwt==2.8.0
