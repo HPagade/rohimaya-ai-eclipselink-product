@@ -1,0 +1,194 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: eclipselink-postgres
+    environment:
+      POSTGRES_DB: eclipselink
+      POSTGRES_USER: eclipselink_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_dev_only}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/migrations:/docker-entrypoint-initdb.d/migrations
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eclipselink_user -d eclipselink"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - eclipselink-network
+    restart: unless-stopped
+
+  # Redis (Cache & Queue)
+  redis:
+    image: redis:7-alpine
+    container_name: eclipselink-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme_dev_only}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - eclipselink-network
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        NODE_ENV: development
+    container_name: eclipselink-backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+
+      # Database
+      DATABASE_URL: postgresql://eclipselink_user:${POSTGRES_PASSWORD:-changeme_dev_only}@postgres:5432/eclipselink
+
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme_dev_only}@redis:6379
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_in_production}
+      JWT_EXPIRES_IN: 7d
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret}
+      JWT_REFRESH_EXPIRES_IN: 30d
+
+      # Azure OpenAI
+      AZURE_OPENAI_KEY: ${AZURE_OPENAI_KEY}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+      AZURE_OPENAI_DEPLOYMENT_WHISPER: ${AZURE_OPENAI_DEPLOYMENT_WHISPER:-whisper}
+      AZURE_OPENAI_DEPLOYMENT_GPT4: ${AZURE_OPENAI_DEPLOYMENT_GPT4:-gpt-4}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
+
+      # Cloudflare R2 (S3-compatible)
+      CLOUDFLARE_R2_ACCOUNT_ID: ${CLOUDFLARE_R2_ACCOUNT_ID}
+      CLOUDFLARE_R2_ACCESS_KEY: ${CLOUDFLARE_R2_ACCESS_KEY}
+      CLOUDFLARE_R2_SECRET_KEY: ${CLOUDFLARE_R2_SECRET_KEY}
+      CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-eclipselink-voice-recordings}
+      CLOUDFLARE_R2_ENDPOINT: ${CLOUDFLARE_R2_ENDPOINT}
+
+      # CORS
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+
+      # Monitoring (optional)
+      SENTRY_DSN: ${SENTRY_DSN}
+      LOGTAIL_SOURCE_TOKEN: ${LOGTAIL_SOURCE_TOKEN}
+
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./apps/backend/src:/app/apps/backend/src
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - eclipselink-network
+    restart: unless-stopped
+    command: npm run dev:backend
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NODE_ENV: development
+    container_name: eclipselink-frontend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY}
+      NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/frontend/src:/app/apps/frontend/src
+      - ./apps/frontend/public:/app/apps/frontend/public
+      - /app/node_modules
+      - /app/apps/frontend/node_modules
+      - /app/apps/frontend/.next
+    depends_on:
+      - backend
+    networks:
+      - eclipselink-network
+    restart: unless-stopped
+    command: npm run dev:frontend
+
+  # Worker (Background Jobs - BullMQ)
+  worker:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        NODE_ENV: development
+    container_name: eclipselink-worker
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+
+      # Database
+      DATABASE_URL: postgresql://eclipselink_user:${POSTGRES_PASSWORD:-changeme_dev_only}@postgres:5432/eclipselink
+
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme_dev_only}@redis:6379
+
+      # Azure OpenAI
+      AZURE_OPENAI_KEY: ${AZURE_OPENAI_KEY}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+      AZURE_OPENAI_DEPLOYMENT_WHISPER: ${AZURE_OPENAI_DEPLOYMENT_WHISPER:-whisper}
+      AZURE_OPENAI_DEPLOYMENT_GPT4: ${AZURE_OPENAI_DEPLOYMENT_GPT4:-gpt-4}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
+
+      # Cloudflare R2
+      CLOUDFLARE_R2_ACCOUNT_ID: ${CLOUDFLARE_R2_ACCOUNT_ID}
+      CLOUDFLARE_R2_ACCESS_KEY: ${CLOUDFLARE_R2_ACCESS_KEY}
+      CLOUDFLARE_R2_SECRET_KEY: ${CLOUDFLARE_R2_SECRET_KEY}
+      CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-eclipselink-voice-recordings}
+      CLOUDFLARE_R2_ENDPOINT: ${CLOUDFLARE_R2_ENDPOINT}
+
+    volumes:
+      - ./apps/backend/src:/app/apps/backend/src
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - eclipselink-network
+    restart: unless-stopped
+    command: npm run worker:start
+
+networks:
+  eclipselink-network:
+    driver: bridge
+    name: eclipselink-network
+
+volumes:
+  postgres_data:
+    driver: local
+    name: eclipselink-postgres-data
+  redis_data:
+    driver: local
+    name: eclipselink-redis-data
