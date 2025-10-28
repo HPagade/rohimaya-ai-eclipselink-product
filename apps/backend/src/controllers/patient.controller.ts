@@ -1,119 +1,163 @@
 import { Request, Response } from 'express';
-import { UUID } from '@eclipselink/types';
-import { NotFoundError } from '../middleware/error.middleware';
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../config/database.config';
+import { NotFoundError, ValidationError } from '../middleware/error.middleware';
+import { DBPatient } from '../types/database.types';
 
 /**
  * Patient Controller
- * Handles patient management endpoints
- * Based on Part 4C specifications
- *
- * NOTE: This is a stub implementation. In production, replace with actual
- * database queries using Supabase or PostgreSQL client
+ * Handles patient management endpoints with full database integration
  */
 
 /**
+ * POST /v1/patients
+ * Create a new patient
+ */
+export async function createPatient(req: Request, res: Response): Promise<void> {
+  const {
+    firstName,
+    lastName,
+    mrn,
+    dateOfBirth,
+    gender,
+    bloodType,
+    allergies,
+    medicalHistory,
+    primaryLanguage,
+    emergencyContact,
+    insuranceInfo,
+  } = req.body;
+
+  // Validation
+  if (!firstName || !lastName || !mrn || !dateOfBirth || !gender) {
+    throw new ValidationError(
+      'Missing required fields: firstName, lastName, mrn, dateOfBirth, gender'
+    );
+  }
+
+  try {
+    // Check if MRN already exists in facility
+    const existingPatient = await db.query<DBPatient>(
+      'SELECT id FROM patients WHERE mrn = $1 AND facility_id = $2',
+      [mrn, req.user!.facilityId]
+    );
+
+    if (existingPatient.rows.length > 0) {
+      throw new ValidationError(`Patient with MRN ${mrn} already exists in this facility`);
+    }
+
+    // Create patient
+    const patientId = uuidv4();
+    const result = await db.query<DBPatient>(
+      `INSERT INTO patients (
+        id, facility_id, first_name, last_name, mrn, date_of_birth, gender,
+        blood_type, allergies, medical_history, primary_language,
+        emergency_contact, insurance_info, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+      RETURNING *`,
+      [
+        patientId,
+        req.user!.facilityId,
+        firstName,
+        lastName,
+        mrn,
+        dateOfBirth,
+        gender,
+        bloodType || null,
+        allergies ? JSON.stringify(allergies) : null,
+        medicalHistory || null,
+        primaryLanguage || 'English',
+        emergencyContact ? JSON.stringify(emergencyContact) : null,
+        insuranceInfo ? JSON.stringify(insuranceInfo) : null,
+        'active',
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      data: result.rows[0],
+      meta: {
+        requestId: req.headers['x-request-id'] || generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * GET /v1/patients
- * List patients with search, filtering, and pagination
+ * List all patients for facility with search and filters
  */
 export async function listPatients(req: Request, res: Response): Promise<void> {
   const {
-    page = 1,
-    limit = 20,
     search,
     status,
-    admissionDateStart,
-    admissionDateEnd,
-    department,
-    hasInitialHandoff,
-    sortBy = 'lastName',
-    sortOrder = 'asc'
+    limit = 50,
+    offset = 0,
+    sortBy = 'last_name',
+    order = 'asc',
   } = req.query;
 
   try {
-    // TODO: Build dynamic query with filters
-    // Apply facility-level RLS
-    // const patients = await db.query('SELECT ... FROM patients WHERE facility_id = $1 ...', [req.user!.facilityId]);
+    // Build WHERE clause
+    const conditions: string[] = ['facility_id = $1'];
+    const params: any[] = [req.user!.facilityId];
+    let paramIndex = 2;
 
-    // Stub response
+    if (status) {
+      conditions.push(`status = $${paramIndex}`);
+      params.push(status);
+      paramIndex++;
+    }
+
+    if (search) {
+      conditions.push(`(
+        first_name ILIKE $${paramIndex} OR
+        last_name ILIKE $${paramIndex} OR
+        mrn ILIKE $${paramIndex}
+      )`);
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    // Valid sort columns
+    const validSortColumns = ['first_name', 'last_name', 'mrn', 'date_of_birth', 'created_at'];
+    const sortColumn = validSortColumns.includes(sortBy as string) ? sortBy : 'last_name';
+    const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
+
+    // Get total count
+    const countResult = await db.query(
+      `SELECT COUNT(*) as total FROM patients WHERE ${whereClause}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].total);
+
+    // Get patients
+    const result = await db.query<DBPatient>(
+      `SELECT * FROM patients
+       WHERE ${whereClause}
+       ORDER BY ${sortColumn} ${sortOrder}
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+
     res.status(200).json({
       success: true,
-      data: {
-        patients: [
-          {
-            id: 'p1234567-89ab-cdef-0123-456789abcdef',
-            mrn: 'MRN123456',
-            firstName: 'Jane',
-            lastName: 'Smith',
-            dateOfBirth: '1965-03-15',
-            age: 60,
-            gender: 'female',
-            status: 'active',
-            admissionDate: '2025-10-20T14:30:00Z',
-            roomNumber: '305',
-            department: 'Medical/Surgical',
-            primaryDiagnosis: 'Type 2 Diabetes Mellitus',
-            assignedProvider: {
-              id: 'a3b2c1d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-              firstName: 'John',
-              lastName: 'Doe',
-              role: 'registered_nurse'
-            },
-            handoffStatus: {
-              hasInitialHandoff: true,
-              totalHandoffs: 4,
-              latestHandoffId: 'h9876543-21ba-fedc-3210-fedcba987654',
-              latestHandoffDate: '2025-10-24T07:00:00Z',
-              currentSbarVersion: 4
-            },
-            acuityLevel: 'moderate',
-            updatedAt: '2025-10-24T07:10:00Z'
-          },
-          {
-            id: 'p2345678-90ab-cdef-0123-456789abcdef',
-            mrn: 'MRN789012',
-            firstName: 'Robert',
-            lastName: 'Johnson',
-            dateOfBirth: '1980-07-22',
-            age: 45,
-            gender: 'male',
-            status: 'active',
-            admissionDate: '2025-10-24T06:00:00Z',
-            roomNumber: '412',
-            department: 'Emergency Department',
-            primaryDiagnosis: 'Community-Acquired Pneumonia',
-            assignedProvider: {
-              id: 'c5d4e3f2-a1b2-3c4d-5e6f-7a8b9c0d1e2f',
-              firstName: 'Emily',
-              lastName: 'Brown',
-              role: 'physician'
-            },
-            handoffStatus: {
-              hasInitialHandoff: false,
-              totalHandoffs: 0,
-              latestHandoffId: null,
-              latestHandoffDate: null,
-              currentSbarVersion: 0
-            },
-            acuityLevel: 'high',
-            updatedAt: '2025-10-24T06:15:00Z'
-          }
-        ],
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 147,
-          totalPages: 8
-        },
-        summary: {
-          totalPatients: 147,
-          needsInitialHandoff: 12,
-          hasInitialHandoff: 135
-        }
+      data: result.rows,
+      pagination: {
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+        hasMore: Number(offset) + result.rows.length < total,
       },
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     });
   } catch (error) {
     throw error;
@@ -122,136 +166,134 @@ export async function listPatients(req: Request, res: Response): Promise<void> {
 
 /**
  * GET /v1/patients/:id
- * Get detailed patient information
+ * Get patient by ID with all details
  */
 export async function getPatient(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
 
   try {
-    // TODO: Fetch patient with all details
-    // const patient = await db.query('SELECT * FROM patients WHERE id = $1 AND facility_id = $2', [id, req.user!.facilityId]);
-    // if (!patient.rows.length) {
-    //   throw new NotFoundError('patient', id);
-    // }
+    const result = await db.query<DBPatient>(
+      'SELECT * FROM patients WHERE id = $1 AND facility_id = $2',
+      [id, req.user!.facilityId]
+    );
 
-    // Stub response
+    if (result.rows.length === 0) {
+      throw new NotFoundError('patient', id);
+    }
+
     res.status(200).json({
       success: true,
-      data: {
-        id,
-        mrn: 'MRN123456',
-        facilityId: req.user!.facilityId,
-        demographics: {
-          firstName: 'Jane',
-          lastName: 'Smith',
-          middleName: 'Marie',
-          dateOfBirth: '1965-03-15',
-          age: 60,
-          gender: 'female',
-          race: 'White',
-          ethnicity: 'Not Hispanic or Latino',
-          maritalStatus: 'Married',
-          preferredLanguage: 'en'
-        },
-        contact: {
-          phone: '+13035551234',
-          email: 'jane.smith@email.com',
-          address: {
-            line1: '123 Main Street',
-            city: 'Denver',
-            state: 'CO',
-            zipCode: '80202'
-          }
-        },
-        emergencyContact: {
-          name: 'John Smith',
-          relationship: 'Spouse',
-          phone: '+13035555678'
-        },
-        admission: {
-          admissionDate: '2025-10-20T14:30:00Z',
-          admissionType: 'Emergency',
-          roomNumber: '305',
-          bedNumber: 'A',
-          department: 'Medical/Surgical',
-          expectedDischargeDate: '2025-10-25T00:00:00Z'
-        },
-        clinical: {
-          status: 'active',
-          acuityLevel: 'moderate',
-          bloodType: 'A+',
-          weight: 165,
-          weightUnit: 'lbs',
-          height: 64,
-          heightUnit: 'in'
-        },
-        primaryDiagnosis: 'Type 2 Diabetes Mellitus',
-        secondaryDiagnoses: [
-          'Essential Hypertension',
-          'Hyperlipidemia'
-        ],
-        allergies: [
-          {
-            allergen: 'Penicillin',
-            reaction: 'Rash',
-            severity: 'Moderate'
-          }
-        ],
-        medications: [
-          {
-            name: 'Metformin',
-            dose: '1000mg',
-            frequency: 'Twice daily',
-            route: 'Oral'
-          },
-          {
-            name: 'Lisinopril',
-            dose: '10mg',
-            frequency: 'Once daily',
-            route: 'Oral'
-          }
-        ],
-        vitalSigns: {
-          temperature: 98.6,
-          bpSystolic: 130,
-          bpDiastolic: 85,
-          heartRate: 78,
-          respiratoryRate: 16,
-          oxygenSaturation: 98,
-          recordedAt: '2025-10-24T06:00:00Z'
-        },
-        handoffHistory: {
-          hasInitialHandoff: true,
-          initialHandoffId: 'h1234567-89ab-cdef-0123-456789abcdef',
-          initialHandoffDate: '2025-10-20T15:00:00Z',
-          totalHandoffs: 4,
-          latestHandoffId: 'h9876543-21ba-fedc-3210-fedcba987654',
-          latestHandoffDate: '2025-10-24T07:00:00Z',
-          currentSbarVersion: 4,
-          recentHandoffs: [
-            {
-              id: 'h9876543-21ba-fedc-3210-fedcba987654',
-              type: 'shift_change',
-              isInitial: false,
-              sbarVersion: 4,
-              createdAt: '2025-10-24T07:00:00Z'
-            },
-            {
-              id: 'h1234567-89ab-cdef-0123-456789abcdef',
-              type: 'admission',
-              isInitial: true,
-              sbarVersion: 1,
-              createdAt: '2025-10-20T15:00:00Z'
-            }
-          ]
-        },
-        createdAt: '2025-10-20T14:30:00Z',
-        updatedAt: '2025-10-24T07:10:00Z'
-      },
+      data: result.rows[0],
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * PUT /v1/patients/:id
+ * Update patient information
+ */
+export async function updatePatient(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const {
+    firstName,
+    lastName,
+    dateOfBirth,
+    gender,
+    bloodType,
+    allergies,
+    medicalHistory,
+    primaryLanguage,
+    emergencyContact,
+    insuranceInfo,
+    status,
+  } = req.body;
+
+  try {
+    // Verify patient exists and belongs to facility
+    const existingPatient = await db.query<DBPatient>(
+      'SELECT * FROM patients WHERE id = $1 AND facility_id = $2',
+      [id, req.user!.facilityId]
+    );
+
+    if (existingPatient.rows.length === 0) {
+      throw new NotFoundError('patient', id);
+    }
+
+    // Build UPDATE query dynamically
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (firstName !== undefined) {
+      updates.push(`first_name = $${paramIndex++}`);
+      values.push(firstName);
+    }
+    if (lastName !== undefined) {
+      updates.push(`last_name = $${paramIndex++}`);
+      values.push(lastName);
+    }
+    if (dateOfBirth !== undefined) {
+      updates.push(`date_of_birth = $${paramIndex++}`);
+      values.push(dateOfBirth);
+    }
+    if (gender !== undefined) {
+      updates.push(`gender = $${paramIndex++}`);
+      values.push(gender);
+    }
+    if (bloodType !== undefined) {
+      updates.push(`blood_type = $${paramIndex++}`);
+      values.push(bloodType);
+    }
+    if (allergies !== undefined) {
+      updates.push(`allergies = $${paramIndex++}`);
+      values.push(allergies ? JSON.stringify(allergies) : null);
+    }
+    if (medicalHistory !== undefined) {
+      updates.push(`medical_history = $${paramIndex++}`);
+      values.push(medicalHistory);
+    }
+    if (primaryLanguage !== undefined) {
+      updates.push(`primary_language = $${paramIndex++}`);
+      values.push(primaryLanguage);
+    }
+    if (emergencyContact !== undefined) {
+      updates.push(`emergency_contact = $${paramIndex++}`);
+      values.push(emergencyContact ? JSON.stringify(emergencyContact) : null);
+    }
+    if (insuranceInfo !== undefined) {
+      updates.push(`insurance_info = $${paramIndex++}`);
+      values.push(insuranceInfo ? JSON.stringify(insuranceInfo) : null);
+    }
+    if (status !== undefined) {
+      updates.push(`status = $${paramIndex++}`);
+      values.push(status);
+    }
+
+    if (updates.length === 0) {
+      throw new ValidationError('No fields to update');
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+
+    const result = await db.query<DBPatient>(
+      `UPDATE patients SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result.rows[0],
+      meta: {
+        requestId: req.headers['x-request-id'] || generateRequestId(),
+        timestamp: new Date().toISOString(),
+      },
     });
   } catch (error) {
     throw error;
@@ -260,107 +302,52 @@ export async function getPatient(req: Request, res: Response): Promise<void> {
 
 /**
  * GET /v1/patients/:id/handoffs
- * Get patient's complete handoff history with SBAR evolution
+ * Get all handoffs for a patient with staff details
  */
 export async function getPatientHandoffs(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const {
-    includeInitial = true,
-    includeUpdates = true,
-    includeSbar = false,
-    limit = 10
-  } = req.query;
+  const { limit = 50, offset = 0 } = req.query;
 
   try {
-    // TODO: Fetch handoffs for patient
-    // const handoffs = await db.query(`
-    //   SELECT h.*, ...
-    //   FROM handoffs h
-    //   WHERE h.patient_id = $1
-    //   ORDER BY h.created_at DESC
-    //   LIMIT $2
-    // `, [id, limit]);
+    // Verify patient exists and belongs to facility
+    const patient = await db.query<DBPatient>(
+      'SELECT * FROM patients WHERE id = $1 AND facility_id = $2',
+      [id, req.user!.facilityId]
+    );
 
-    // Stub response
+    if (patient.rows.length === 0) {
+      throw new NotFoundError('patient', id);
+    }
+
+    // Get handoffs with staff details
+    const result = await db.query(
+      `SELECT
+        h.*,
+        fs.first_name as from_staff_first_name,
+        fs.last_name as from_staff_last_name,
+        ts.first_name as to_staff_first_name,
+        ts.last_name as to_staff_last_name
+      FROM handoffs h
+      LEFT JOIN staff fs ON h.from_staff_id = fs.id
+      LEFT JOIN staff ts ON h.to_staff_id = ts.id
+      WHERE h.patient_id = $1
+      ORDER BY h.created_at DESC
+      LIMIT $2 OFFSET $3`,
+      [id, limit, offset]
+    );
+
     res.status(200).json({
       success: true,
-      data: {
-        patient: {
-          id,
-          name: 'Jane Smith',
-          mrn: 'MRN123456'
-        },
-        handoffTimeline: [
-          {
-            id: 'h9876543-21ba-fedc-3210-fedcba987654',
-            handoffType: 'shift_change',
-            isInitialHandoff: false,
-            previousHandoffId: 'h8765432-10ba-fedc-3210-fedcba987654',
-            priority: 'routine',
-            status: 'completed',
-            fromStaff: {
-              name: 'Sarah Johnson',
-              role: 'registered_nurse'
-            },
-            toStaff: {
-              name: 'Michael Chen',
-              role: 'registered_nurse'
-            },
-            ...(includeSbar && {
-              sbarReport: {
-                id: 's9876543-21ba-fedc-3210-fedcba987654',
-                version: 4,
-                isLatest: true,
-                situation: '60yo female with T2DM, glucose improved to 110 mg/dL',
-                background: '[Stable - see v1]',
-                assessment: 'Blood glucose now well-controlled. No symptoms.',
-                recommendation: 'Continue insulin. Discharge planned tomorrow.'
-              }
-            }),
-            createdAt: '2025-10-24T07:00:00Z',
-            completedAt: '2025-10-24T07:15:00Z'
-          },
-          {
-            id: 'h1234567-89ab-cdef-0123-456789abcdef',
-            handoffType: 'admission',
-            isInitialHandoff: true,
-            previousHandoffId: null,
-            priority: 'urgent',
-            status: 'completed',
-            fromStaff: {
-              name: 'John Doe',
-              role: 'registered_nurse'
-            },
-            ...(includeSbar && {
-              sbarReport: {
-                id: 's1234567-89ab-cdef-0123-456789abcdef',
-                version: 1,
-                isInitial: true,
-                situation: '60yo female with T2DM admitted for hyperglycemia. Alert, oriented x3. Current glucose 320 mg/dL.',
-                background: 'PMH: T2DM x10yrs, HTN, hyperlipidemia. Home meds: Metformin 1000mg BID...',
-                assessment: 'VS: T 98.6°F, BP 145/90, HR 88, RR 18, SpO2 97% RA. Hyperglycemic crisis...',
-                recommendation: 'Start insulin drip per protocol. Monitor glucose q1h...'
-              }
-            }),
-            createdAt: '2025-10-20T15:00:00Z',
-            completedAt: '2025-10-20T15:20:00Z'
-          }
-        ],
-        summary: {
-          totalHandoffs: 4,
-          initialHandoff: {
-            id: 'h1234567-89ab-cdef-0123-456789abcdef',
-            date: '2025-10-20T15:00:00Z'
-          },
-          updateHandoffs: 3,
-          currentSbarVersion: 4,
-          daysSinceAdmission: 4
-        }
+      data: result.rows,
+      pagination: {
+        limit: Number(limit),
+        offset: Number(offset),
+        hasMore: result.rows.length === Number(limit),
       },
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     });
   } catch (error) {
     throw error;

@@ -1,14 +1,15 @@
 import { Request, Response } from 'express';
 import { UUID } from '@eclipselink/types';
 import { NotFoundError, ValidationError, ConflictError } from '../middleware/error.middleware';
+import { db } from '../config/database.config';
+import { DBHandoff, DBPatient, DBStaff } from '../types/database.types';
 
 /**
  * Handoff Controller
  * Handles handoff management endpoints
  * Based on Part 4B specifications
  *
- * NOTE: This is a stub implementation. In production, replace with actual
- * database queries using Supabase or PostgreSQL client
+ * Full database integration with PostgreSQL via Supabase
  */
 
 /**
@@ -32,77 +33,128 @@ export async function createHandoff(req: Request, res: Response): Promise<void> 
   } = req.body;
 
   try {
-    // TODO: Replace with actual database operations
-    // 1. Validate patient exists
-    // const patient = await db.query('SELECT * FROM patients WHERE id = $1', [patientId]);
-    // if (!patient.rows.length) {
-    //   throw new NotFoundError('patient', patientId);
-    // }
+    // 1. Validate patient exists and belongs to the facility
+    const patientResult = await db.query<DBPatient>(
+      'SELECT * FROM patients WHERE id = $1 AND facility_id = $2',
+      [patientId, req.user!.facilityId]
+    );
 
-    // 2. Validate staff exists
-    // const fromStaff = await db.query('SELECT * FROM staff WHERE id = $1', [fromStaffId]);
-    // if (!fromStaff.rows.length) {
-    //   throw new NotFoundError('staff', fromStaffId);
-    // }
+    if (patientResult.rows.length === 0) {
+      throw new NotFoundError('patient', patientId);
+    }
 
-    // 3. If update handoff, validate previous handoff exists
-    // if (!isInitialHandoff && previousHandoffId) {
-    //   const prevHandoff = await db.query('SELECT * FROM handoffs WHERE id = $1', [previousHandoffId]);
-    //   if (!prevHandoff.rows.length) {
-    //     throw new NotFoundError('handoff', previousHandoffId);
-    //   }
-    // }
+    const patient = patientResult.rows[0];
 
-    // 4. Create handoff
-    // const handoff = await db.query(
-    //   'INSERT INTO handoffs (...) VALUES (...) RETURNING *',
-    //   [...]
-    // );
+    // 2. Validate from_staff exists and belongs to the facility
+    const fromStaffResult = await db.query<DBStaff>(
+      'SELECT * FROM staff WHERE id = $1 AND facility_id = $2 AND is_active = true',
+      [fromStaffId || req.user!.userId, req.user!.facilityId]
+    );
 
-    // Stub response
-    const handoffId = generateUUID();
+    if (fromStaffResult.rows.length === 0) {
+      throw new NotFoundError('staff', fromStaffId);
+    }
+
+    const fromStaff = fromStaffResult.rows[0];
+
+    // 3. Validate to_staff exists (if provided)
+    let toStaff = null;
+    if (toStaffId) {
+      const toStaffResult = await db.query<DBStaff>(
+        'SELECT * FROM staff WHERE id = $1 AND facility_id = $2 AND is_active = true',
+        [toStaffId, req.user!.facilityId]
+      );
+
+      if (toStaffResult.rows.length === 0) {
+        throw new NotFoundError('staff', toStaffId);
+      }
+
+      toStaff = toStaffResult.rows[0];
+    }
+
+    // 4. If update handoff, validate previous handoff exists
+    if (!isInitialHandoff && previousHandoffId) {
+      const prevHandoffResult = await db.query<DBHandoff>(
+        'SELECT * FROM handoffs WHERE id = $1 AND facility_id = $2',
+        [previousHandoffId, req.user!.facilityId]
+      );
+
+      if (prevHandoffResult.rows.length === 0) {
+        throw new NotFoundError('handoff', previousHandoffId);
+      }
+    }
+
+    // 5. Create handoff
+    const handoffResult = await db.query<DBHandoff>(
+      `INSERT INTO handoffs (
+        patient_id, facility_id, from_staff_id, to_staff_id,
+        status, handoff_type, priority, scheduled_time,
+        location, clinical_notes, is_critical, requires_followup,
+        is_initial_handoff, previous_handoff_id, exported_to_ehr
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        patientId,
+        req.user!.facilityId,
+        fromStaffId || req.user!.userId,
+        toStaffId || null,
+        'draft',
+        handoffType,
+        priority,
+        scheduledTime || null,
+        location || null,
+        clinicalNotes || null,
+        isCritical,
+        requiresFollowup,
+        isInitialHandoff,
+        previousHandoffId || null,
+        false
+      ]
+    );
+
+    const handoff = handoffResult.rows[0];
 
     res.status(201).json({
       success: true,
       data: {
-        id: handoffId,
-        patientId,
+        id: handoff.id,
+        patientId: handoff.patient_id,
         patient: {
-          id: patientId,
-          firstName: 'Jane',
-          lastName: 'Smith',
-          mrn: 'MRN123456',
-          dateOfBirth: '1965-03-15',
-          roomNumber: '305'
+          id: patient.id,
+          firstName: patient.first_name,
+          lastName: patient.last_name,
+          mrn: patient.mrn,
+          dateOfBirth: patient.date_of_birth,
+          roomNumber: patient.room_number
         },
-        facilityId: req.user!.facilityId,
-        fromStaffId,
+        facilityId: handoff.facility_id,
+        fromStaffId: handoff.from_staff_id,
         fromStaff: {
-          id: fromStaffId,
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'registered_nurse'
+          id: fromStaff.id,
+          firstName: fromStaff.first_name,
+          lastName: fromStaff.last_name,
+          role: fromStaff.role
         },
-        toStaffId,
-        toStaff: toStaffId ? {
-          id: toStaffId,
-          firstName: 'Sarah',
-          lastName: 'Johnson',
-          role: 'registered_nurse'
+        toStaffId: handoff.to_staff_id,
+        toStaff: toStaff ? {
+          id: toStaff.id,
+          firstName: toStaff.first_name,
+          lastName: toStaff.last_name,
+          role: toStaff.role
         } : null,
-        status: 'draft',
-        handoffType,
-        priority,
-        scheduledTime,
-        location,
-        clinicalNotes,
-        isCritical,
-        requiresFollowup,
-        isInitialHandoff,
-        previousHandoffId,
-        exportedToEhr: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        status: handoff.status,
+        handoffType: handoff.handoff_type,
+        priority: handoff.priority,
+        scheduledTime: handoff.scheduled_time,
+        location: handoff.location,
+        clinicalNotes: handoff.clinical_notes,
+        isCritical: handoff.is_critical,
+        requiresFollowup: handoff.requires_followup,
+        isInitialHandoff: handoff.is_initial_handoff,
+        previousHandoffId: handoff.previous_handoff_id,
+        exportedToEhr: handoff.exported_to_ehr,
+        createdAt: handoff.created_at,
+        updatedAt: handoff.updated_at
       },
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),
@@ -137,86 +189,155 @@ export async function listHandoffs(req: Request, res: Response): Promise<void> {
   } = req.query;
 
   try {
-    // TODO: Build dynamic query with filters
-    // let query = 'SELECT h.*, p.*, s1.*, s2.* FROM handoffs h ...';
-    // const params = [];
+    // Build dynamic query with filters
+    const filters: string[] = ['h.facility_id = $1'];
+    const params: any[] = [req.user!.facilityId];
+    let paramIndex = 2;
 
-    // Apply filters, pagination, sorting
-    // const result = await db.query(query, params);
-    // const total = await db.query('SELECT COUNT(*) FROM handoffs WHERE ...', params);
+    if (status) {
+      filters.push(`h.status = $${paramIndex++}`);
+      params.push(status);
+    }
 
-    // Stub response
+    if (priority) {
+      filters.push(`h.priority = $${paramIndex++}`);
+      params.push(priority);
+    }
+
+    if (handoffType) {
+      filters.push(`h.handoff_type = $${paramIndex++}`);
+      params.push(handoffType);
+    }
+
+    if (fromStaffId) {
+      filters.push(`h.from_staff_id = $${paramIndex++}`);
+      params.push(fromStaffId);
+    }
+
+    if (toStaffId) {
+      filters.push(`h.to_staff_id = $${paramIndex++}`);
+      params.push(toStaffId);
+    }
+
+    if (patientId) {
+      filters.push(`h.patient_id = $${paramIndex++}`);
+      params.push(patientId);
+    }
+
+    if (startDate) {
+      filters.push(`h.created_at >= $${paramIndex++}`);
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      filters.push(`h.created_at <= $${paramIndex++}`);
+      params.push(endDate);
+    }
+
+    if (search) {
+      filters.push(`(
+        p.first_name ILIKE $${paramIndex} OR
+        p.last_name ILIKE $${paramIndex} OR
+        p.mrn ILIKE $${paramIndex} OR
+        h.clinical_notes ILIKE $${paramIndex}
+      )`);
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    const whereClause = filters.join(' AND ');
+
+    // Get total count
+    const countResult = await db.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM handoffs h
+       LEFT JOIN patients p ON h.patient_id = p.id
+       WHERE ${whereClause}`,
+      params
+    );
+
+    const total = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.ceil(total / Number(limit));
+    const offset = (Number(page) - 1) * Number(limit);
+
+    // Map sortBy field to database column
+    const sortByMap: Record<string, string> = {
+      createdAt: 'h.created_at',
+      updatedAt: 'h.updated_at',
+      status: 'h.status',
+      priority: 'h.priority',
+      scheduledTime: 'h.scheduled_time'
+    };
+
+    const orderByClause = `${sortByMap[sortBy as string] || 'h.created_at'} ${sortOrder === 'asc' ? 'ASC' : 'DESC'}`;
+
+    // Fetch handoffs with relations
+    const result = await db.query<any>(
+      `SELECT
+        h.*,
+        p.id as patient_id, p.first_name as patient_first_name, p.last_name as patient_last_name,
+        p.mrn, p.date_of_birth, p.room_number,
+        fs.id as from_staff_id, fs.first_name as from_staff_first_name, fs.last_name as from_staff_last_name,
+        fs.role as from_staff_role, fs.department as from_staff_department,
+        ts.id as to_staff_id, ts.first_name as to_staff_first_name, ts.last_name as to_staff_last_name,
+        ts.role as to_staff_role, ts.department as to_staff_department
+      FROM handoffs h
+      LEFT JOIN patients p ON h.patient_id = p.id
+      LEFT JOIN staff fs ON h.from_staff_id = fs.id
+      LEFT JOIN staff ts ON h.to_staff_id = ts.id
+      WHERE ${whereClause}
+      ORDER BY ${orderByClause}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+
+    const handoffs = result.rows.map((row: any) => ({
+      id: row.id,
+      patient: {
+        id: row.patient_id,
+        firstName: row.patient_first_name,
+        lastName: row.patient_last_name,
+        mrn: row.mrn,
+        dateOfBirth: row.date_of_birth,
+        roomNumber: row.room_number
+      },
+      fromStaff: row.from_staff_id ? {
+        id: row.from_staff_id,
+        firstName: row.from_staff_first_name,
+        lastName: row.from_staff_last_name,
+        role: row.from_staff_role,
+        department: row.from_staff_department
+      } : null,
+      toStaff: row.to_staff_id ? {
+        id: row.to_staff_id,
+        firstName: row.to_staff_first_name,
+        lastName: row.to_staff_last_name,
+        role: row.to_staff_role,
+        department: row.to_staff_department
+      } : null,
+      status: row.status,
+      priority: row.priority,
+      handoffType: row.handoff_type,
+      scheduledTime: row.scheduled_time,
+      location: row.location,
+      isCritical: row.is_critical,
+      requiresFollowup: row.requires_followup,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+
     res.status(200).json({
       success: true,
       data: {
-        handoffs: [
-          {
-            id: 'h1234567-89ab-cdef-0123-456789abcdef',
-            patient: {
-              id: 'p1234567-89ab-cdef-0123-456789abcdef',
-              firstName: 'Jane',
-              lastName: 'Smith',
-              mrn: 'MRN123456',
-              dateOfBirth: '1965-03-15',
-              roomNumber: '305'
-            },
-            fromStaff: {
-              id: 'a3b2c1d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-              firstName: 'John',
-              lastName: 'Doe',
-              role: 'registered_nurse',
-              department: 'Emergency Department'
-            },
-            toStaff: {
-              id: 'b4c3d2e1-f5e6-4a7b-8c9d-0e1f2a3b4c5d',
-              firstName: 'Sarah',
-              lastName: 'Johnson',
-              role: 'registered_nurse',
-              department: 'Medical/Surgical'
-            },
-            status: 'ready',
-            priority: 'urgent',
-            handoffType: 'shift_change',
-            scheduledTime: '2025-10-24T07:00:00Z',
-            location: 'Room 305',
-            hasSbar: true,
-            hasVoiceRecording: true,
-            processingComplete: true,
-            totalProcessingTime: 40,
-            qualityScore: 0.95,
-            isCritical: false,
-            requiresFollowup: true,
-            createdAt: '2025-10-23T22:30:00Z',
-            updatedAt: '2025-10-23T22:35:00Z'
-          }
-        ],
+        handoffs,
         pagination: {
           page: Number(page),
           limit: Number(limit),
-          total: 45,
-          totalPages: 3,
-          hasNextPage: true,
-          hasPrevPage: false,
-          nextPage: 2,
-          prevPage: null
-        },
-        summary: {
-          totalHandoffs: 45,
-          statusBreakdown: {
-            draft: 2,
-            recording: 1,
-            transcribing: 3,
-            generating: 5,
-            ready: 18,
-            assigned: 10,
-            accepted: 4,
-            completed: 2
-          },
-          priorityBreakdown: {
-            routine: 35,
-            urgent: 8,
-            emergent: 2
-          }
+          total,
+          totalPages,
+          hasNextPage: Number(page) < totalPages,
+          hasPrevPage: Number(page) > 1,
+          nextPage: Number(page) < totalPages ? Number(page) + 1 : null,
+          prevPage: Number(page) > 1 ? Number(page) - 1 : null
         }
       },
       meta: {
@@ -237,92 +358,84 @@ export async function getHandoff(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
 
   try {
-    // TODO: Fetch handoff with all relations
-    // const handoff = await db.query(`
-    //   SELECT h.*, p.*, ...
-    //   FROM handoffs h
-    //   JOIN patients p ON h.patient_id = p.id
-    //   WHERE h.id = $1
-    // `, [id]);
+    // Fetch handoff with all relations
+    const result = await db.query<any>(
+      `SELECT
+        h.*,
+        p.id as patient_id, p.first_name as patient_first_name, p.last_name as patient_last_name,
+        p.mrn, p.date_of_birth, p.gender, p.room_number, p.bed_number,
+        p.primary_diagnosis, p.chief_complaint,
+        fs.id as from_staff_id, fs.first_name as from_staff_first_name, fs.last_name as from_staff_last_name,
+        fs.role as from_staff_role, fs.department as from_staff_department,
+        ts.id as to_staff_id, ts.first_name as to_staff_first_name, ts.last_name as to_staff_last_name,
+        ts.role as to_staff_role, ts.department as to_staff_department,
+        vr.id as voice_recording_id, vr.duration, vr.file_size, vr.audio_format, vr.status as recording_status,
+        vr.uploaded_at, vr.processed_at
+      FROM handoffs h
+      LEFT JOIN patients p ON h.patient_id = p.id
+      LEFT JOIN staff fs ON h.from_staff_id = fs.id
+      LEFT JOIN staff ts ON h.to_staff_id = ts.id
+      LEFT JOIN voice_recordings vr ON vr.handoff_id = h.id
+      WHERE h.id = $1 AND h.facility_id = $2`,
+      [id, req.user!.facilityId]
+    );
 
-    // if (!handoff.rows.length) {
-    //   throw new NotFoundError('handoff', id);
-    // }
+    if (result.rows.length === 0) {
+      throw new NotFoundError('handoff', id);
+    }
 
-    // Stub response
+    const row = result.rows[0];
+
     res.status(200).json({
       success: true,
       data: {
-        id,
+        id: row.id,
         patient: {
-          id: 'p1234567-89ab-cdef-0123-456789abcdef',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          mrn: 'MRN123456',
-          dateOfBirth: '1965-03-15',
-          gender: 'female',
-          roomNumber: '305',
-          bedNumber: 'A',
-          primaryDiagnosis: 'Type 2 Diabetes Mellitus',
-          chiefComplaint: 'Hyperglycemia',
-          allergies: [
-            {
-              allergen: 'Penicillin',
-              reaction: 'Rash',
-              severity: 'Moderate'
-            }
-          ],
-          vitalSigns: {
-            temperature: 98.6,
-            bpSystolic: 130,
-            bpDiastolic: 85,
-            heartRate: 78,
-            respiratoryRate: 16,
-            oxygenSaturation: 98,
-            recordedAt: '2025-10-23T20:00:00Z'
-          }
+          id: row.patient_id,
+          firstName: row.patient_first_name,
+          lastName: row.patient_last_name,
+          mrn: row.mrn,
+          dateOfBirth: row.date_of_birth,
+          gender: row.gender,
+          roomNumber: row.room_number,
+          bedNumber: row.bed_number,
+          primaryDiagnosis: row.primary_diagnosis,
+          chiefComplaint: row.chief_complaint
         },
-        fromStaff: {
-          id: 'a3b2c1d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'registered_nurse',
-          department: 'Emergency Department'
-        },
-        toStaff: {
-          id: 'b4c3d2e1-f5e6-4a7b-8c9d-0e1f2a3b4c5d',
-          firstName: 'Sarah',
-          lastName: 'Johnson',
-          role: 'registered_nurse',
-          department: 'Medical/Surgical'
-        },
-        status: 'ready',
-        priority: 'urgent',
-        handoffType: 'transfer',
-        scheduledTime: '2025-10-24T07:00:00Z',
-        location: 'Room 305',
-        clinicalNotes: 'Patient stable, continue current treatment plan',
-        voiceRecording: {
-          id: 'v1234567-89ab-cdef-0123-456789abcdef',
-          duration: 185,
-          fileSize: 2048000,
-          audioFormat: 'webm',
-          status: 'transcribed',
-          uploadedAt: '2025-10-23T22:32:00Z',
-          processedAt: '2025-10-23T22:33:15Z'
-        },
-        processingTimes: {
-          recordingDuration: 185,
-          transcriptionDuration: 22,
-          sbarGenerationDuration: 18,
-          totalProcessingTime: 40
-        },
-        qualityScore: 0.95,
-        isCritical: false,
-        requiresFollowup: true,
-        exportedToEhr: false,
-        createdAt: '2025-10-23T22:30:00Z',
-        updatedAt: '2025-10-23T22:35:00Z'
+        fromStaff: row.from_staff_id ? {
+          id: row.from_staff_id,
+          firstName: row.from_staff_first_name,
+          lastName: row.from_staff_last_name,
+          role: row.from_staff_role,
+          department: row.from_staff_department
+        } : null,
+        toStaff: row.to_staff_id ? {
+          id: row.to_staff_id,
+          firstName: row.to_staff_first_name,
+          lastName: row.to_staff_last_name,
+          role: row.to_staff_role,
+          department: row.to_staff_department
+        } : null,
+        status: row.status,
+        priority: row.priority,
+        handoffType: row.handoff_type,
+        scheduledTime: row.scheduled_time,
+        location: row.location,
+        clinicalNotes: row.clinical_notes,
+        voiceRecording: row.voice_recording_id ? {
+          id: row.voice_recording_id,
+          duration: row.duration,
+          fileSize: row.file_size,
+          audioFormat: row.audio_format,
+          status: row.recording_status,
+          uploadedAt: row.uploaded_at,
+          processedAt: row.processed_at
+        } : null,
+        isCritical: row.is_critical,
+        requiresFollowup: row.requires_followup,
+        exportedToEhr: row.exported_to_ehr,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
       },
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),
@@ -343,23 +456,90 @@ export async function updateHandoff(req: Request, res: Response): Promise<void> 
   const updates = req.body;
 
   try {
-    // TODO: Validate state transitions
-    // if (updates.status) {
-    //   const currentHandoff = await db.query('SELECT status FROM handoffs WHERE id = $1', [id]);
-    //   if (!isValidTransition(currentHandoff.status, updates.status)) {
-    //     throw new ValidationError('Invalid state transition', {...});
-    //   }
-    // }
+    // Verify handoff exists and belongs to facility
+    const existingResult = await db.query<DBHandoff>(
+      'SELECT * FROM handoffs WHERE id = $1 AND facility_id = $2',
+      [id, req.user!.facilityId]
+    );
 
-    // TODO: Update handoff
-    // const result = await db.query('UPDATE handoffs SET ... WHERE id = $1 RETURNING *', [id]);
+    if (existingResult.rows.length === 0) {
+      throw new NotFoundError('handoff', id);
+    }
+
+    // Build dynamic update query
+    const updateFields: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (updates.toStaffId !== undefined) {
+      updateFields.push(`to_staff_id = $${paramIndex++}`);
+      params.push(updates.toStaffId);
+    }
+
+    if (updates.status !== undefined) {
+      updateFields.push(`status = $${paramIndex++}`);
+      params.push(updates.status);
+    }
+
+    if (updates.priority !== undefined) {
+      updateFields.push(`priority = $${paramIndex++}`);
+      params.push(updates.priority);
+    }
+
+    if (updates.scheduledTime !== undefined) {
+      updateFields.push(`scheduled_time = $${paramIndex++}`);
+      params.push(updates.scheduledTime);
+    }
+
+    if (updates.location !== undefined) {
+      updateFields.push(`location = $${paramIndex++}`);
+      params.push(updates.location);
+    }
+
+    if (updates.clinicalNotes !== undefined) {
+      updateFields.push(`clinical_notes = $${paramIndex++}`);
+      params.push(updates.clinicalNotes);
+    }
+
+    if (updates.isCritical !== undefined) {
+      updateFields.push(`is_critical = $${paramIndex++}`);
+      params.push(updates.isCritical);
+    }
+
+    if (updates.requiresFollowup !== undefined) {
+      updateFields.push(`requires_followup = $${paramIndex++}`);
+      params.push(updates.requiresFollowup);
+    }
+
+    updateFields.push(`updated_at = NOW()`);
+
+    if (updateFields.length === 1) { // Only updated_at was added
+      throw new ValidationError('No valid fields to update');
+    }
+
+    // Execute update
+    params.push(id, req.user!.facilityId);
+    const result = await db.query<DBHandoff>(
+      `UPDATE handoffs SET ${updateFields.join(', ')}
+       WHERE id = $${paramIndex} AND facility_id = $${paramIndex + 1}
+       RETURNING *`,
+      params
+    );
+
+    const handoff = result.rows[0];
 
     res.status(200).json({
       success: true,
       data: {
-        id,
-        ...updates,
-        updatedAt: new Date().toISOString()
+        id: handoff.id,
+        status: handoff.status,
+        priority: handoff.priority,
+        scheduledTime: handoff.scheduled_time,
+        location: handoff.location,
+        clinicalNotes: handoff.clinical_notes,
+        isCritical: handoff.is_critical,
+        requiresFollowup: handoff.requires_followup,
+        updatedAt: handoff.updated_at
       },
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),

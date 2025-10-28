@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,16 +12,27 @@ import { ArrowLeft, Upload, Loader2 } from 'lucide-react';
 
 export default function CreateHandoffPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [step, setStep] = useState(1); // 1: Basic Info, 2: Voice Recording, 3: Processing
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pre-fill from URL params
+  useEffect(() => {
+    const patientIdParam = searchParams.get('patientId');
+    if (patientIdParam) {
+      setPatientId(patientIdParam);
+    }
+  }, [searchParams]);
 
   // Form state
   const [patientId, setPatientId] = useState('');
   const [toStaffId, setToStaffId] = useState('');
   const [handoffType, setHandoffType] = useState('shift_change');
   const [priority, setPriority] = useState('routine');
+  const [isInitialHandoff, setIsInitialHandoff] = useState(false);
+  const [previousHandoffId, setPreviousHandoffId] = useState('');
 
   // Recording state
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
@@ -51,7 +62,9 @@ export default function CreateHandoffPage() {
         toStaffId,
         handoffType,
         priority,
-        status: 'assigned',
+        status: 'draft',
+        isInitialHandoff,
+        previousHandoffId: previousHandoffId || null,
       });
 
       setHandoffId(handoff.id);
@@ -212,6 +225,43 @@ export default function CreateHandoffPage() {
                 </select>
               </div>
 
+              {/* Initial Handoff Toggle */}
+              <div className="flex items-center space-x-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="isInitialHandoff"
+                  checked={isInitialHandoff}
+                  onChange={(e) => {
+                    setIsInitialHandoff(e.target.checked);
+                    if (e.target.checked) {
+                      setPreviousHandoffId(''); // Clear previous handoff if initial
+                    }
+                  }}
+                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                />
+                <label htmlFor="isInitialHandoff" className="text-sm font-medium text-blue-900 cursor-pointer">
+                  This is an <strong>initial handoff</strong> (patient admission)
+                </label>
+              </div>
+
+              {/* Previous Handoff ID (only if not initial) */}
+              {!isInitialHandoff && (
+                <div className="space-y-2">
+                  <label htmlFor="previousHandoffId" className="text-sm font-medium">
+                    Previous Handoff ID (for update handoffs)
+                  </label>
+                  <Input
+                    id="previousHandoffId"
+                    placeholder="e.g., h12345678-abcd-..."
+                    value={previousHandoffId}
+                    onChange={(e) => setPreviousHandoffId(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Leave empty if this is a shift change without a specific previous handoff to reference
+                  </p>
+                </div>
+              )}
+
               <Button type="submit" className="w-full">
                 Continue to Recording
               </Button>
@@ -233,13 +283,26 @@ export default function CreateHandoffPage() {
             <CardContent>
               <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">SBAR Format Reminder:</h3>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li><strong>S</strong>ituation - What is happening with the patient?</li>
-                    <li><strong>B</strong>ackground - What is the clinical context?</li>
-                    <li><strong>A</strong>ssessment - What do you think the problem is?</li>
-                    <li><strong>R</strong>ecommendation - What should be done?</li>
-                  </ul>
+                  <h3 className="font-semibold text-blue-900 mb-2">
+                    {isInitialHandoff ? 'Initial Handoff - SBAR Format:' : 'Update Handoff - SBAR Format:'}
+                  </h3>
+                  {isInitialHandoff ? (
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li><strong>S</strong>ituation - Current patient status, chief complaint, vital signs</li>
+                      <li><strong>B</strong>ackground - Complete medical history, medications, allergies, admission reason</li>
+                      <li><strong>A</strong>ssessment - Clinical assessment, lab results, current trends</li>
+                      <li><strong>R</strong>ecommendation - Full care plan, pending tasks, follow-ups</li>
+                      <li className="mt-2 text-xs italic">Record 5-10 minutes covering complete patient history</li>
+                    </ul>
+                  ) : (
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li><strong>S</strong>ituation - What changed since last handoff?</li>
+                      <li><strong>B</strong>ackground - Any new medications, allergies, or updates?</li>
+                      <li><strong>A</strong>ssessment - New findings, changes in condition?</li>
+                      <li><strong>R</strong>ecommendation - Updated care plan, new pending tasks?</li>
+                      <li className="mt-2 text-xs italic">Record 1-3 minutes focusing only on changes</li>
+                    </ul>
+                  )}
                 </div>
 
                 <VoiceRecorder

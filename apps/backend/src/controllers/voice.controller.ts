@@ -2,16 +2,20 @@ import { Request, Response } from 'express';
 import { UUID } from '@eclipselink/types';
 import { NotFoundError, ValidationError } from '../middleware/error.middleware';
 import { transcriptionQueue } from '../config/queue.config';
+import { db } from '../config/database.config';
+import { storageService } from '../services/storage.service';
+import { DBVoiceRecording, DBHandoff, DBStaff } from '../types/database.types';
 
 /**
  * Voice Recording Controller
  * Handles voice recording upload and processing endpoints
  * Based on Part 4B specifications
  *
- * NOTE: This is a stub implementation. In production:
- * - Upload files to Cloudflare R2
- * - Queue transcription job with BullMQ
- * - Generate presigned URLs for download
+ * Full implementation with:
+ * - Cloudflare R2 storage integration
+ * - PostgreSQL database operations
+ * - BullMQ job queue management
+ * - Presigned URL generation for secure downloads
  */
 
 /**
@@ -27,58 +31,99 @@ export async function uploadVoiceRecording(req: Request, res: Response): Promise
   }
 
   try {
-    // Generate recording ID
-    const recordingId = generateUUID();
-    const audioFormat = audioFile.mimetype.split('/')[1] || 'webm';
-    const filePath = `2025/10/${req.user!.facilityId}/${recordingId}.${audioFormat}`;
+    // 1. Validate handoff exists and belongs to facility
+    const handoffResult = await db.query<DBHandoff>(
+      'SELECT * FROM handoffs WHERE id = $1 AND facility_id = $2',
+      [handoffId, req.user!.facilityId]
+    );
 
-    // TODO: Validate handoff exists
-    // const handoff = await db.query('SELECT * FROM handoffs WHERE id = $1', [handoffId]);
-    // if (!handoff.rows.length) {
-    //   throw new NotFoundError('handoff', handoffId);
-    // }
+    if (handoffResult.rows.length === 0) {
+      throw new NotFoundError('handoff', handoffId);
+    }
 
-    // TODO: Upload file to Cloudflare R2
-    // await r2Client.upload(filePath, audioFile.buffer);
+    const handoff = handoffResult.rows[0];
 
-    // TODO: Create voice_recording record
-    // const recording = await db.query(
-    //   'INSERT INTO voice_recordings (id, handoff_id, uploaded_by, duration, file_size, audio_format, file_path, status, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *',
-    //   [recordingId, handoffId, req.user!.userId, duration, audioFile.size, audioFormat, filePath, 'uploaded']
-    // );
+    // 2. Upload file to Cloudflare R2
+    const audioFormat = (audioFile.mimetype.split('/')[1] || 'webm') as any;
+    const uploadResult = await storageService.uploadFile(
+      {
+        fileName: audioFile.originalname || `recording-${Date.now()}.${audioFormat}`,
+        fileBuffer: audioFile.buffer,
+        contentType: audioFile.mimetype,
+        metadata: {
+          'handoff-id': handoffId,
+          'uploaded-by': req.user!.userId,
+          'duration': String(duration)
+        }
+      },
+      req.user!.facilityId,
+      handoffId
+    );
 
-    // Queue transcription job with BullMQ
+    console.log(`✅ Uploaded audio file to R2: ${uploadResult.fileKey}`);
+
+    // 3. Create voice_recording record in database
+    const recordingResult = await db.query<DBVoiceRecording>(
+      `INSERT INTO voice_recordings (
+        handoff_id, uploaded_by, facility_id, duration, file_size, audio_format,
+        file_path, file_url, status, uploaded_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+      RETURNING *`,
+      [
+        handoffId,
+        req.user!.userId,
+        req.user!.facilityId,
+        Number(duration),
+        uploadResult.fileSize,
+        audioFormat,
+        uploadResult.fileKey,
+        uploadResult.fileUrl,
+        'uploaded'
+      ]
+    );
+
+    const recording = recordingResult.rows[0];
+
+    // 4. Update handoff status to 'recording'
+    await db.query(
+      'UPDATE handoffs SET status = $1, updated_at = NOW() WHERE id = $2',
+      ['recording', handoffId]
+    );
+
+    // 5. Queue transcription job with BullMQ
     const transcriptionJob = await transcriptionQueue.add('transcribe-audio', {
-      recordingId,
+      recordingId: recording.id,
       handoffId,
-      filePath,
+      filePath: uploadResult.fileKey,
       duration: Number(duration),
       audioFormat,
       facilityId: req.user!.facilityId
     }, {
       priority: 1, // High priority for transcription
       removeOnComplete: { count: 100, age: 24 * 60 * 60 }, // Keep last 100 jobs for 24 hours
-      removeOnFail: false // Keep failed jobs for debugging
+      removeOnFail: false, // Keep failed jobs for debugging
+      attempts: 3, // Retry up to 3 times
+      backoff: {
+        type: 'exponential',
+        delay: 5000 // Start with 5 second delay
+      }
     });
 
-    console.log(`[Voice Controller] Queued transcription job ${transcriptionJob.id} for recording ${recordingId}`);
-
-    // TODO: Update handoff status
-    // await db.query('UPDATE handoffs SET status = $1 WHERE id = $2', ['recording', handoffId]);
+    console.log(`🎯 Queued transcription job ${transcriptionJob.id} for recording ${recording.id}`);
 
     res.status(201).json({
       success: true,
       data: {
-        recordingId,
+        recordingId: recording.id,
         handoffId,
-        duration: Number(duration),
-        fileSize: audioFile.size,
-        audioFormat,
-        status: 'uploaded',
-        filePath,
+        duration: recording.duration,
+        fileSize: recording.file_size,
+        audioFormat: recording.audio_format,
+        status: recording.status,
+        filePath: recording.file_path,
         transcriptionJobId: transcriptionJob.id,
         estimatedProcessingTime: Math.ceil(Number(duration) / 6), // Rough estimate: 1/6 of audio duration
-        uploadedAt: new Date().toISOString(),
+        uploadedAt: recording.uploaded_at,
         message: 'Voice recording uploaded successfully. Transcription will begin shortly.'
       },
       meta: {
@@ -99,41 +144,48 @@ export async function getVoiceRecording(req: Request, res: Response): Promise<vo
   const { id } = req.params;
 
   try {
-    // TODO: Fetch recording from database
-    // const recording = await db.query('SELECT * FROM voice_recordings WHERE id = $1', [id]);
-    // if (!recording.rows.length) {
-    //   throw new NotFoundError('voice_recording', id);
-    // }
+    // Fetch recording with staff details
+    const result = await db.query<any>(
+      `SELECT
+        vr.*,
+        s.id as staff_id, s.first_name, s.last_name, s.role
+      FROM voice_recordings vr
+      LEFT JOIN staff s ON vr.uploaded_by = s.id
+      WHERE vr.id = $1 AND vr.facility_id = $2`,
+      [id, req.user!.facilityId]
+    );
 
-    // Stub response
+    if (result.rows.length === 0) {
+      throw new NotFoundError('voice_recording', id);
+    }
+
+    const row = result.rows[0];
+
     res.status(200).json({
       success: true,
       data: {
-        id,
-        handoffId: 'h1234567-89ab-cdef-0123-456789abcdef',
+        id: row.id,
+        handoffId: row.handoff_id,
         uploadedBy: {
-          id: req.user!.userId,
-          firstName: 'John',
-          lastName: 'Doe'
+          id: row.staff_id,
+          firstName: row.first_name,
+          lastName: row.last_name,
+          role: row.role
         },
-        duration: 185,
-        fileSize: 2048000,
-        audioFormat: 'webm',
-        sampleRate: 48000,
-        bitRate: 128,
-        channels: 1,
-        status: 'transcribed',
-        filePath: '2025/10/f47ac10b-58cc-4372-a567-0e02b2c3d479/v1234567.webm',
-        fileUrl: null, // Generated on-demand via /download endpoint
-        transcriptionJobId: 'job_abc123',
-        transcriptionAttempts: 1,
-        audioQualityScore: 0.92,
-        silencePercentage: 5.3,
-        noiseLevel: 12.5,
-        recordedAt: '2025-10-23T22:30:00Z',
-        uploadedAt: '2025-10-23T22:32:00Z',
-        processedAt: '2025-10-23T22:33:15Z',
-        createdAt: '2025-10-23T22:32:00Z'
+        duration: row.duration,
+        fileSize: row.file_size,
+        audioFormat: row.audio_format,
+        status: row.status,
+        filePath: row.file_path,
+        fileUrl: row.file_url,
+        transcriptionJobId: row.transcription_job_id,
+        transcriptionText: row.transcription_text,
+        transcriptionConfidence: row.transcription_confidence,
+        transcriptionAttempts: row.transcription_attempts,
+        audioQualityScore: row.audio_quality_score,
+        uploadedAt: row.uploaded_at,
+        processedAt: row.processed_at,
+        createdAt: row.created_at
       },
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),
@@ -151,28 +203,40 @@ export async function getVoiceRecording(req: Request, res: Response): Promise<vo
  */
 export async function getVoiceDownloadUrl(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
+  const { expiresIn = 900 } = req.query; // Default 15 minutes
 
   try {
-    // TODO: Generate presigned URL from Cloudflare R2
-    // const recording = await db.query('SELECT file_path FROM voice_recordings WHERE id = $1', [id]);
-    // if (!recording.rows.length) {
-    //   throw new NotFoundError('voice_recording', id);
-    // }
+    // Fetch recording from database
+    const result = await db.query<DBVoiceRecording>(
+      'SELECT * FROM voice_recordings WHERE id = $1 AND facility_id = $2',
+      [id, req.user!.facilityId]
+    );
 
-    // const presignedUrl = await r2Client.getSignedUrl(recording.rows[0].file_path, 900); // 15 minutes
+    if (result.rows.length === 0) {
+      throw new NotFoundError('voice_recording', id);
+    }
 
-    // Stub response
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const recording = result.rows[0];
+
+    // Generate presigned URL from Cloudflare R2
+    const presignedUrl = await storageService.getPresignedUrl(
+      recording.file_path,
+      { expiresIn: Number(expiresIn) }
+    );
+
+    const expiresAt = new Date(Date.now() + Number(expiresIn) * 1000).toISOString();
+    const fileName = `recording-${recording.handoff_id}-${recording.id}.${recording.audio_format}`;
 
     res.status(200).json({
       success: true,
       data: {
-        downloadUrl: `https://eclipselink-production.r2.cloudflarestorage.com/2025/10/facility-id/${id}.webm?signature=stub-signature-here`,
+        downloadUrl: presignedUrl,
         expiresAt,
-        expiresIn: 900, // 15 minutes in seconds
-        fileName: `recording-${id}.webm`,
-        fileSize: 2048000,
-        contentType: 'audio/webm'
+        expiresIn: Number(expiresIn),
+        fileName,
+        fileSize: recording.file_size,
+        contentType: `audio/${recording.audio_format}`,
+        duration: recording.duration
       },
       meta: {
         requestId: req.headers['x-request-id'] || generateRequestId(),
@@ -192,37 +256,63 @@ export async function getVoiceStatus(req: Request, res: Response): Promise<void>
   const { id } = req.params;
 
   try {
-    // TODO: Fetch status from database and job queue
-    // const recording = await db.query('SELECT * FROM voice_recordings WHERE id = $1', [id]);
-    // if (!recording.rows.length) {
-    //   throw new NotFoundError('voice_recording', id);
-    // }
+    // Fetch recording status from database
+    const result = await db.query<DBVoiceRecording>(
+      'SELECT * FROM voice_recordings WHERE id = $1 AND facility_id = $2',
+      [id, req.user!.facilityId]
+    );
 
-    // const jobStatus = await transcriptionQueue.getJob(recording.transcriptionJobId);
+    if (result.rows.length === 0) {
+      throw new NotFoundError('voice_recording', id);
+    }
 
-    // Simulate different statuses
-    const statuses = ['processing', 'transcribed', 'failed'];
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+    const recording = result.rows[0];
 
-    if (randomStatus === 'processing') {
+    // Fetch job status from queue if available
+    let jobInfo = null;
+    if (recording.transcription_job_id) {
+      try {
+        const job = await transcriptionQueue.getJob(recording.transcription_job_id);
+        if (job) {
+          const state = await job.getState();
+          jobInfo = {
+            id: job.id,
+            state,
+            progress: job.progress,
+            attempts: job.attemptsMade,
+            failedReason: job.failedReason
+          };
+        }
+      } catch (error) {
+        console.warn(`Could not fetch job status: ${error}`);
+      }
+    }
+
+    // Return status based on recording state
+    if (recording.status === 'processing' || recording.status === 'uploaded') {
       res.status(200).json({
         success: true,
         data: {
           recordingId: id,
           status: 'processing',
           stage: 'transcription',
-          progress: 45,
-          transcriptionJobId: 'job_abc123',
-          startedAt: '2025-10-23T22:32:30Z',
-          estimatedCompletionAt: new Date(Date.now() + 30000).toISOString(),
-          message: 'Transcribing audio with Azure Whisper API...'
+          progress: jobInfo?.progress || 0,
+          transcriptionJobId: recording.transcription_job_id,
+          transcriptionAttempts: recording.transcription_attempts || 0,
+          uploadedAt: recording.uploaded_at,
+          estimatedCompletionAt: recording.uploaded_at ?
+            new Date(new Date(recording.uploaded_at).getTime() + (recording.duration * 1000 / 6)).toISOString() : null,
+          message: 'Transcribing audio with Azure Whisper API...',
+          jobInfo
         },
         meta: {
           requestId: req.headers['x-request-id'] || generateRequestId(),
           timestamp: new Date().toISOString()
         }
       });
-    } else if (randomStatus === 'transcribed') {
+    } else if (recording.status === 'transcribed') {
+      const wordCount = recording.transcription_text ? recording.transcription_text.split(/\s+/).length : 0;
+
       res.status(200).json({
         success: true,
         data: {
@@ -230,14 +320,15 @@ export async function getVoiceStatus(req: Request, res: Response): Promise<void>
           status: 'transcribed',
           stage: 'completed',
           progress: 100,
-          transcriptionJobId: 'job_abc123',
-          startedAt: '2025-10-23T22:32:30Z',
-          completedAt: '2025-10-23T22:33:15Z',
-          processingDuration: 45,
+          transcriptionJobId: recording.transcription_job_id,
+          uploadedAt: recording.uploaded_at,
+          processedAt: recording.processed_at,
+          processingDuration: recording.processed_at && recording.uploaded_at ?
+            Math.floor((new Date(recording.processed_at).getTime() - new Date(recording.uploaded_at).getTime()) / 1000) : null,
           transcription: {
-            text: 'Patient is a 60-year-old female with type 2 diabetes admitted three days ago for hyperglycemia...',
-            confidence: 0.96,
-            wordCount: 385,
+            text: recording.transcription_text,
+            confidence: recording.transcription_confidence,
+            wordCount,
             language: 'en'
           },
           nextStep: 'sbar_generation',
@@ -248,7 +339,7 @@ export async function getVoiceStatus(req: Request, res: Response): Promise<void>
           timestamp: new Date().toISOString()
         }
       });
-    } else {
+    } else if (recording.status === 'failed') {
       res.status(200).json({
         success: true,
         data: {
@@ -256,21 +347,37 @@ export async function getVoiceStatus(req: Request, res: Response): Promise<void>
           status: 'failed',
           stage: 'transcription',
           progress: 0,
-          transcriptionJobId: 'job_abc123',
-          startedAt: '2025-10-23T22:32:30Z',
-          failedAt: '2025-10-23T22:32:45Z',
-          attemptNumber: 3,
+          transcriptionJobId: recording.transcription_job_id,
+          uploadedAt: recording.uploaded_at,
+          failedAt: recording.processed_at,
+          attemptNumber: recording.transcription_attempts || 0,
           maxAttempts: 3,
           error: {
             code: 'TRANSCRIPTION_FAILED',
-            message: 'Audio quality insufficient for transcription',
-            details: {
-              audioQualityScore: 0.35,
-              minimumRequired: 0.50
-            }
+            message: recording.error_message || 'Transcription failed',
+            details: jobInfo?.failedReason ? { reason: jobInfo.failedReason } : null
           },
-          retryAvailable: false,
-          message: 'Transcription failed after 3 attempts. Please re-record with better audio quality.'
+          retryAvailable: (recording.transcription_attempts || 0) < 3,
+          message: recording.error_message || 'Transcription failed. Please try again.',
+          jobInfo
+        },
+        meta: {
+          requestId: req.headers['x-request-id'] || generateRequestId(),
+          timestamp: new Date().toISOString()
+        }
+      });
+    } else {
+      // Generic response for other statuses
+      res.status(200).json({
+        success: true,
+        data: {
+          recordingId: id,
+          status: recording.status,
+          transcriptionJobId: recording.transcription_job_id,
+          uploadedAt: recording.uploaded_at,
+          processedAt: recording.processed_at,
+          message: `Recording status: ${recording.status}`,
+          jobInfo
         },
         meta: {
           requestId: req.headers['x-request-id'] || generateRequestId(),
@@ -291,14 +398,32 @@ export async function deleteVoiceRecording(req: Request, res: Response): Promise
   const { id } = req.params;
 
   try {
-    // TODO: Delete from R2 and database
-    // const recording = await db.query('SELECT file_path FROM voice_recordings WHERE id = $1', [id]);
-    // if (!recording.rows.length) {
-    //   throw new NotFoundError('voice_recording', id);
-    // }
+    // Fetch recording to get file path
+    const result = await db.query<DBVoiceRecording>(
+      'SELECT * FROM voice_recordings WHERE id = $1 AND facility_id = $2',
+      [id, req.user!.facilityId]
+    );
 
-    // await r2Client.delete(recording.rows[0].file_path);
-    // await db.query('DELETE FROM voice_recordings WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      throw new NotFoundError('voice_recording', id);
+    }
+
+    const recording = result.rows[0];
+
+    // Delete file from R2 storage
+    try {
+      await storageService.deleteFile(recording.file_path);
+      console.log(`✅ Deleted audio file from R2: ${recording.file_path}`);
+    } catch (error) {
+      console.warn(`⚠️  Could not delete file from R2: ${error}`);
+      // Continue with database deletion even if R2 deletion fails
+    }
+
+    // Delete from database (soft delete by updating status)
+    await db.query(
+      'UPDATE voice_recordings SET status = $1, updated_at = NOW() WHERE id = $2',
+      ['deleted', id]
+    );
 
     res.status(200).json({
       success: true,
