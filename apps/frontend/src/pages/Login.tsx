@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/store/authStore'
+import { Link } from 'react-router-dom'
+// import { useNavigate } from 'react-router-dom'  // Will be used in Day 2
+// import { useAuthStore } from '@/store/authStore'  // Will be used in Day 2
 import toast from 'react-hot-toast'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
-  const login = useAuthStore((state) => state.login)
+  // const navigate = useNavigate()  // Will be used in Day 2
+  // const login = useAuthStore((state) => state.login)  // Will be used in Day 2
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
