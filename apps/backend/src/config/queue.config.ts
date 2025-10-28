@@ -47,8 +47,7 @@ export const transcriptionQueue = new Queue('transcription', {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 3, // Retry up to 3 times for transcription
-    priority: 1, // High priority
-    timeout: 60000 // 1 minute timeout
+    priority: 1 // High priority
   }
 });
 
@@ -61,8 +60,7 @@ export const sbarGenerationQueue = new Queue('sbar-generation', {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 3, // Retry up to 3 times
-    priority: 2, // Lower priority than transcription
-    timeout: 120000 // 2 minute timeout
+    priority: 2 // Lower priority than transcription
   }
 });
 
@@ -75,8 +73,7 @@ export const notificationQueue = new Queue('notification', {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 5, // Retry more for notifications
-    priority: 3, // Lower priority
-    timeout: 30000 // 30 second timeout
+    priority: 3 // Lower priority
   }
 });
 

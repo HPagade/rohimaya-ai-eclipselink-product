@@ -28,18 +28,18 @@ class EclipseLinkAPI {
 
     // Request interceptor - add auth token
     this.client.interceptors.request.use(
-      (config) => {
+      (config: any) => {
         if (this.tokens.accessToken) {
           config.headers.Authorization = `Bearer ${this.tokens.accessToken}`;
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error: any) => Promise.reject(error)
     );
 
     // Response interceptor - handle token refresh
     this.client.interceptors.response.use(
-      (response) => response,
+      (response: any) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as any;
 
@@ -79,9 +79,9 @@ class EclipseLinkAPI {
     this.tokens.refreshToken = response.data.data.tokens.refreshToken;
 
     // Store in localStorage
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && this.tokens.accessToken && this.tokens.refreshToken) {
       localStorage.setItem('accessToken', this.tokens.accessToken);
-      localStorage.setItem('refreshToken', this.tokens.refreshToken!);
+      localStorage.setItem('refreshToken', this.tokens.refreshToken);
     }
 
     return response.data.data.user;
@@ -111,9 +111,9 @@ class EclipseLinkAPI {
     this.tokens.accessToken = response.data.data.accessToken;
     this.tokens.refreshToken = response.data.data.refreshToken;
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && this.tokens.accessToken && this.tokens.refreshToken) {
       localStorage.setItem('accessToken', this.tokens.accessToken);
-      localStorage.setItem('refreshToken', this.tokens.refreshToken!);
+      localStorage.setItem('refreshToken', this.tokens.refreshToken);
     }
   }
 
@@ -181,7 +181,7 @@ class EclipseLinkAPI {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      onUploadProgress: (progressEvent) => {
+      onUploadProgress: (progressEvent: any) => {
         if (onProgress && progressEvent.total) {
           const percentCompleted = Math.round(
             (progressEvent.loaded * 100) / progressEvent.total
