@@ -130,8 +130,23 @@ with st.sidebar:
     📊 **Clinical Dashboard**
     See real-time management
 
-    💰 **ROI Calculator**
-    Calculate your savings
+    🚨 **Critical Alert Detection**
+    See AI flag critical values
+
+    🔄 **Update-Only Model**
+    Baseline vs updates workflow
+
+    👨‍👩‍👧‍👦 **Family Portal**
+    Plain-language for families
+
+    💬 **AI Chatbot**
+    Query patient data instantly
+
+    🌐 **Multi-Language Translation**
+    50+ language support
+
+    🏥 **EHR Integration Flow**
+    Epic, Cerner, MEDITECH
     """)
 
     st.markdown("---")
@@ -207,7 +222,8 @@ st.markdown("---")
 # Demo Cards
 st.markdown("### Explore Our Interactive Demos")
 
-col_demo1, col_demo2, col_demo3 = st.columns(3)
+st.markdown("#### Core Product Features")
+col_demo1, col_demo2 = st.columns(2)
 
 with col_demo1:
     st.markdown(f"""
@@ -245,20 +261,117 @@ with col_demo2:
     </div>
     """, unsafe_allow_html=True)
 
-with col_demo3:
+st.markdown("---")
+
+st.markdown("#### Advanced Features")
+col_demo4, col_demo5, col_demo6 = st.columns(3)
+
+with col_demo4:
     st.markdown(f"""
     <div class="demo-card">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">💰</div>
-        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">ROI Calculator</h3>
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🚨</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">Critical Alert Detection</h3>
         <p style="color: #666; line-height: 1.6;">
-            Calculate your facility's potential time savings and cost reduction. Customize
-            parameters to see personalized ROI projections and 5-year forecasts.
+            See how AI automatically identifies and flags critical values in patient handoffs.
+            Real-time detection of abnormal vitals, labs, and high-risk medications.
         </p>
         <ul style="color: #666; line-height: 1.8;">
-            <li>Customizable inputs</li>
-            <li>Annual cost savings</li>
-            <li>5-year projections</li>
-            <li>Pricing comparisons</li>
+            <li>Critical vital sign alerts</li>
+            <li>Abnormal lab value detection</li>
+            <li>High-risk medication flags</li>
+            <li>Multi-severity alert system</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_demo5:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔄</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">Update-Only Model</h3>
+        <p style="color: #666; line-height: 1.6;">
+            Experience the baseline vs updates workflow. Create comprehensive baseline handoffs
+            once, then quick 30-second updates for subsequent handoffs.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>Comprehensive baseline creation</li>
+            <li>Quick update-only handoffs</li>
+            <li>Visual change tracking</li>
+            <li>85% time reduction</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_demo6:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">👨‍👩‍👧‍👦</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">Family Portal</h3>
+        <p style="color: #666; line-height: 1.6;">
+            See how clinical updates are translated to plain language for patient families.
+            Medical jargon automatically converted to easy-to-understand updates.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>Medical → plain language</li>
+            <li>Side-by-side comparison</li>
+            <li>Privacy controls</li>
+            <li>Mobile-responsive design</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+col_demo7, col_demo8, col_demo9 = st.columns(3)
+
+with col_demo7:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">💬</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">AI Chatbot</h3>
+        <p style="color: #666; line-height: 1.6;">
+            Ask questions about patient data in natural language and get instant answers.
+            Query medications, labs, vitals, procedures, and more using conversational AI.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>Natural language queries</li>
+            <li>Instant patient data answers</li>
+            <li>Source citations</li>
+            <li>Quick query templates</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_demo8:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🌐</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">Multi-Language Translation</h3>
+        <p style="color: #666; line-height: 1.6;">
+            Experience real-time translation to 50+ languages. Clinical handoffs automatically
+            translated for diverse healthcare teams and international family members.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>50+ languages supported</li>
+            <li>Real-time translation</li>
+            <li>Medical terminology accuracy</li>
+            <li>Cultural sensitivity</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_demo9:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🏥</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">EHR Integration Flow</h3>
+        <p style="color: #666; line-height: 1.6;">
+            See seamless bi-directional integration with Epic, Cerner, and MEDITECH.
+            FHIR R4 and HL7 v2.x examples with real data flow visualization.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>Pull patient data from EHR</li>
+            <li>Push SBAR reports back</li>
+            <li>FHIR R4 & HL7 v2.x support</li>
+            <li>6-8 week implementation</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
