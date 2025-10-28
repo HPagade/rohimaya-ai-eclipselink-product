@@ -1,224 +1,479 @@
 """
-EclipseLink AI™ - Streamlit Demo Home Page
-Voice-enabled Clinical Handoff Platform with AI-powered SBAR Generation
+EclipseLink AI - Demo Suite Home Page
+Interactive demonstration suite for EclipseLink AI platform
 """
 
 import streamlit as st
-import os
-from datetime import datetime
 
 # Page configuration
 st.set_page_config(
-    page_title="EclipseLink AI™ - Clinical Handoff Platform",
-    page_icon="🏥",
+    page_title="EclipseLink AI - Interactive Demos",
+    page_icon="🦚",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# Brand colors
+PEACOCK_TEAL = "#1a9b8e"
+PHOENIX_GOLD = "#f4c430"
+LUNAR_BLUE = "#2c3e50"
+ECLIPSE_NAVY = "#1a2332"
+MOON_WHITE = "#f8f9fa"
+ACCENT_COPPER = "#b87333"
+
 # Custom CSS
-st.markdown("""
-    <style>
-    .main-header {
+st.markdown(f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    * {{
+        font-family: 'Inter', sans-serif;
+    }}
+
+    .main-header {{
+        background: linear-gradient(135deg, {PEACOCK_TEAL} 0%, {LUNAR_BLUE} 100%);
+        padding: 3rem 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }}
+
+    .hero-title {{
         font-size: 3rem;
         font-weight: 700;
-        color: #0ea5e9;
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-    .sub-header {
-        font-size: 1.2rem;
-        text-align: center;
-        color: #64748b;
-        margin-bottom: 2rem;
-    }
-    .feature-card {
-        background-color: #1e293b;
+        margin: 0 0 1rem 0;
+        line-height: 1.2;
+    }}
+
+    .hero-subtitle {{
+        font-size: 1.3rem;
+        margin: 0;
+        opacity: 0.95;
+    }}
+
+    .demo-card {{
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border-top: 5px solid {PEACOCK_TEAL};
+        height: 100%;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }}
+
+    .demo-card:hover {{
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }}
+
+    .feature-card {{
+        background: {MOON_WHITE};
         padding: 1.5rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid #0ea5e9;
+        border-radius: 10px;
+        border-left: 4px solid {PEACOCK_TEAL};
         margin-bottom: 1rem;
-    }
-    .stats-card {
-        background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+    }}
+
+    .stat-card {{
+        background: white;
         padding: 1.5rem;
-        border-radius: 0.5rem;
+        border-radius: 10px;
         text-align: center;
-        color: white;
-    }
-    .stats-number {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }}
+
+    .stat-number {{
         font-size: 2.5rem;
         font-weight: 700;
-    }
-    .stats-label {
+        color: {PEACOCK_TEAL};
+        margin: 0;
+    }}
+
+    .stat-label {{
         font-size: 0.9rem;
-        opacity: 0.9;
-    }
-    </style>
+        color: #666;
+        margin-top: 0.5rem;
+    }}
+
+    .brand-badge {{
+        background: linear-gradient(135deg, {PEACOCK_TEAL}, {LUNAR_BLUE});
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 25px;
+        font-weight: 600;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }}
+</style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown('<h1 class="main-header">🏥 EclipseLink AI™</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Voice-Enabled Clinical Handoff Platform with AI-Powered SBAR Generation</p>', unsafe_allow_html=True)
+# Sidebar
+with st.sidebar:
+    st.markdown(f"""
+    <div style="text-align: center; padding: 1rem;">
+        <div style="font-size: 3rem; margin-bottom: 0.5rem;">🦚</div>
+        <h2 style="color: {PEACOCK_TEAL}; margin: 0;">EclipseLink AI</h2>
+        <p style="color: #666; font-size: 0.9rem; margin-top: 0.5rem;">Interactive Demo Suite</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# Introduction
-st.markdown("---")
-col1, col2, col3 = st.columns(3)
+    st.markdown("---")
+
+    st.markdown("### Navigate Demos")
+    st.info("""
+    Use the sidebar navigation above to explore:
+
+    🎙️ **Voice-to-SBAR Demo**
+    Experience the core feature
+
+    📊 **Clinical Dashboard**
+    See real-time management
+
+    💰 **ROI Calculator**
+    Calculate your savings
+    """)
+
+    st.markdown("---")
+
+    st.markdown("### About EclipseLink AI")
+    st.markdown("""
+    Voice-enabled clinical handoff platform with AI-powered SBAR generation.
+
+    **Transform** 3-5 minute voice recordings into comprehensive SBAR reports in under 30 seconds.
+    """)
+
+    st.markdown("---")
+
+    st.markdown("### Contact Us")
+    st.markdown("""
+    📧 **Email:** sales@rohimaya.ai
+
+    🌐 **Website:** eclipselink.ai
+
+    📞 **Phone:** 1-800-ECLIPSE
+    """)
+
+# Main Header
+st.markdown(f"""
+<div class="main-header">
+    <div class="brand-badge">DEMO SUITE</div>
+    <h1 class="hero-title">Welcome to EclipseLink AI™</h1>
+    <p class="hero-subtitle">Voice-enabled clinical handoff platform with AI-powered SBAR generation</p>
+    <p style="margin-top: 1.5rem; font-size: 1.1rem;">
+        Transforming 3-5 minute voice recordings into comprehensive SBAR reports in under 30 seconds
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# Key Stats
+st.markdown("### Platform Impact")
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.markdown("""
-    <div class="stats-card">
-        <div class="stats-number">60%</div>
-        <div class="stats-label">Faster Handoffs</div>
+    st.markdown(f"""
+    <div class="stat-card">
+        <div class="stat-number">30s</div>
+        <div class="stat-label">Average Processing Time</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
-    st.markdown("""
-    <div class="stats-card">
-        <div class="stats-number">95%</div>
-        <div class="stats-label">Accuracy Rate</div>
+    st.markdown(f"""
+    <div class="stat-card">
+        <div class="stat-number">97%</div>
+        <div class="stat-label">Transcription Accuracy</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col3:
-    st.markdown("""
-    <div class="stats-card">
-        <div class="stats-number">HIPAA</div>
-        <div class="stats-label">Compliant</div>
+    st.markdown(f"""
+    <div class="stat-card">
+        <div class="stat-number">4.5 min</div>
+        <div class="stat-label">Time Saved per Handoff</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col4:
+    st.markdown(f"""
+    <div class="stat-card">
+        <div class="stat-number">9M+</div>
+        <div class="stat-label">Target Healthcare Professionals</div>
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# About Section
-st.header("🎯 About EclipseLink AI")
-st.markdown("""
-EclipseLink AI™ is a revolutionary healthcare platform that transforms clinical handoffs through:
+# Demo Cards
+st.markdown("### Explore Our Interactive Demos")
 
-- **🎙️ Voice-to-Text**: Capture handoff notes naturally through voice recording
-- **🤖 AI-Powered SBAR**: Automatically generate structured SBAR reports using Azure OpenAI GPT-4
-- **📊 Real-time Analytics**: Track handoff quality, completeness, and patient safety metrics
-- **🔒 HIPAA Compliance**: Bank-grade encryption and audit trails for patient data security
-- **📱 Mobile-First**: Progressive Web App works seamlessly on any device
-""")
+col_demo1, col_demo2, col_demo3 = st.columns(3)
+
+with col_demo1:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🎙️</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">Voice-to-SBAR Demo</h3>
+        <p style="color: #666; line-height: 1.6;">
+            Experience our core feature end-to-end. Upload or simulate a voice recording,
+            watch real-time transcription, and see AI generate structured SBAR reports.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>Multiple clinical scenarios</li>
+            <li>Real-time processing simulation</li>
+            <li>Interactive SBAR editing</li>
+            <li>EHR export preview</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_demo2:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">Clinical Dashboard</h3>
+        <p style="color: #666; line-height: 1.6;">
+            Explore the management interface used by healthcare facilities. View active
+            handoffs, analytics, team performance, and system alerts.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>Real-time handoff tracking</li>
+            <li>Analytics & insights</li>
+            <li>Team activity monitoring</li>
+            <li>System notifications</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_demo3:
+    st.markdown(f"""
+    <div class="demo-card">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">💰</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">ROI Calculator</h3>
+        <p style="color: #666; line-height: 1.6;">
+            Calculate your facility's potential time savings and cost reduction. Customize
+            parameters to see personalized ROI projections and 5-year forecasts.
+        </p>
+        <ul style="color: #666; line-height: 1.8;">
+            <li>Customizable inputs</li>
+            <li>Annual cost savings</li>
+            <li>5-year projections</li>
+            <li>Pricing comparisons</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("---")
 
 # Key Features
-st.header("✨ Key Features")
+st.markdown("### Key Platform Features")
 
-col1, col2 = st.columns(2)
+col_feat1, col_feat2 = st.columns(2)
 
-with col1:
-    st.markdown("""
+with col_feat1:
+    st.markdown(f"""
     <div class="feature-card">
-        <h3>🎤 Voice Recording</h3>
-        <p>Record clinical handoffs naturally using voice. Our system supports multi-language transcription with Azure Whisper for high accuracy.</p>
+        <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">🎙️ Voice-to-SBAR Conversion</h4>
+        <ul style="line-height: 1.8; margin: 0;">
+            <li><strong>Record</strong> via mobile, tablet, or desktop</li>
+            <li><strong>Transcribe</strong> with 97%+ medical term accuracy (Azure OpenAI Whisper)</li>
+            <li><strong>Generate</strong> structured SBAR reports with GPT-4 in under 30 seconds</li>
+            <li><strong>Edit</strong> and approve with inline editing interface</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="feature-card">
-        <h3>🤖 AI SBAR Generation</h3>
-        <p>Automatically generate structured SBAR reports from transcribed voice notes. GPT-4 analyzes clinical context and creates standardized reports.</p>
+        <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">🏥 EHR Integration</h4>
+        <ul style="line-height: 1.8; margin: 0;">
+            <li><strong>Seamless connectivity</strong> with Epic, Cerner, MEDITECH</li>
+            <li><strong>FHIR R4</strong> and <strong>HL7 v2</strong> protocol support</li>
+            <li><strong>Bi-directional sync</strong> of patient data</li>
+            <li><strong>One-click export</strong> to EHR systems</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="feature-card">
-        <h3>📋 Version Control</h3>
-        <p>Track all changes to SBAR reports with complete version history and audit trails for compliance.</p>
+        <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">📱 Multi-Platform Access</h4>
+        <ul style="line-height: 1.8; margin: 0;">
+            <li><strong>Progressive Web App (PWA)</strong> - Install on any device</li>
+            <li><strong>Offline capability</strong> - Record without internet</li>
+            <li><strong>Real-time sync</strong> across all devices</li>
+            <li><strong>Responsive design</strong> optimized for all screens</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
-with col2:
-    st.markdown("""
+with col_feat2:
+    st.markdown(f"""
     <div class="feature-card">
-        <h3>👥 Team Collaboration</h3>
-        <p>Seamlessly hand off patients between providers with role-based access control and real-time notifications.</p>
+        <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">🔒 HIPAA Compliance</h4>
+        <ul style="line-height: 1.8; margin: 0;">
+            <li><strong>End-to-end encryption</strong> - AES-256 at rest, TLS 1.3 in transit</li>
+            <li><strong>Row-Level Security</strong> - Database-level data isolation</li>
+            <li><strong>Comprehensive audit logs</strong> - 7-year retention</li>
+            <li><strong>PHI access tracking</strong> - Every access logged</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="feature-card">
-        <h3>📊 Analytics Dashboard</h3>
-        <p>Gain insights into handoff quality, completion rates, and identify areas for improvement.</p>
+        <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">🤖 AI-Powered Intelligence</h4>
+        <ul style="line-height: 1.8; margin: 0;">
+            <li><strong>Azure OpenAI Whisper</strong> for speech-to-text</li>
+            <li><strong>GPT-4-32k</strong> for SBAR generation</li>
+            <li><strong>Medical terminology</strong> auto-correction</li>
+            <li><strong>Context-aware</strong> clinical information extraction</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="feature-card">
-        <h3>🔐 Security & Compliance</h3>
-        <p>HIPAA-compliant with encryption at rest and in transit, comprehensive audit logs, and role-based access control.</p>
+        <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">📊 Analytics & Insights</h4>
+        <ul style="line-height: 1.8; margin: 0;">
+            <li><strong>Real-time dashboards</strong> for facility management</li>
+            <li><strong>Performance metrics</strong> by department and staff</li>
+            <li><strong>Quality indicators</strong> and compliance tracking</li>
+            <li><strong>Custom reports</strong> and data exports</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
-# Demo Navigation
 st.markdown("---")
-st.header("🚀 Explore the Demos")
 
-col1, col2, col3 = st.columns(3)
+# Target Users
+st.markdown("### Target Healthcare Professionals")
 
-with col1:
-    st.markdown("### 🎙️ Voice Recording Demo")
-    st.markdown("Experience how clinicians can record handoff notes using voice input.")
-    if st.button("Launch Voice Demo", key="voice"):
-        st.switch_page("pages/1_Voice_Recording.py")
+st.markdown(f"""
+<div style="background: {MOON_WHITE}; padding: 2rem; border-radius: 10px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+        <div>
+            <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">Nursing Staff</h4>
+            <ul style="line-height: 1.8; color: #666;">
+                <li>Registered Nurses (RN)</li>
+                <li>Licensed Practical Nurses (LPN)</li>
+                <li>Certified Nursing Assistants (CNA)</li>
+                <li>Nurse Practitioners (NP)</li>
+            </ul>
+        </div>
+        <div>
+            <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">Physicians</h4>
+            <ul style="line-height: 1.8; color: #666;">
+                <li>Medical Doctors (MD)</li>
+                <li>Doctors of Osteopathy (DO)</li>
+                <li>Physician Assistants (PA)</li>
+                <li>Resident Physicians</li>
+            </ul>
+        </div>
+        <div>
+            <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">Allied Health</h4>
+            <ul style="line-height: 1.8; color: #666;">
+                <li>Respiratory Therapists (RT)</li>
+                <li>Physical Therapists (PT)</li>
+                <li>Occupational Therapists (OT)</li>
+                <li>Medical Assistants (MA)</li>
+            </ul>
+        </div>
+        <div>
+            <h4 style="color: {PEACOCK_TEAL}; margin-top: 0;">Emergency Services</h4>
+            <ul style="line-height: 1.8; color: #666;">
+                <li>Emergency Medical Technicians (EMT)</li>
+                <li>Paramedics</li>
+                <li>Emergency Department Staff</li>
+                <li>Critical Care Staff</li>
+            </ul>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-with col2:
-    st.markdown("### 🤖 SBAR Generation Demo")
-    st.markdown("See how AI transforms clinical notes into structured SBAR reports.")
-    if st.button("Launch SBAR Demo", key="sbar"):
-        st.switch_page("pages/2_SBAR_Generation.py")
-
-with col3:
-    st.markdown("### 📊 Analytics Demo")
-    st.markdown("View comprehensive analytics and insights on handoff quality.")
-    if st.button("Launch Analytics Demo", key="analytics"):
-        st.switch_page("pages/3_Analytics_Dashboard.py")
-
-# Technology Stack
 st.markdown("---")
-st.header("🛠️ Technology Stack")
 
-col1, col2, col3 = st.columns(3)
+# Market Opportunity
+st.markdown("### Market Opportunity")
 
-with col1:
-    st.markdown("**Frontend**")
-    st.markdown("""
-    - Next.js 14
-    - React 18
-    - TypeScript
-    - Tailwind CSS
-    - PWA Support
-    """)
+col_market1, col_market2, col_market3 = st.columns(3)
 
-with col2:
-    st.markdown("**Backend**")
-    st.markdown("""
-    - Node.js + Express
-    - PostgreSQL
-    - Redis (BullMQ)
-    - Azure OpenAI
-    - Azure Whisper
-    """)
+with col_market1:
+    st.markdown(f"""
+    <div class="stat-card" style="padding: 2rem;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">👥</div>
+        <div class="stat-number">9M+</div>
+        <div class="stat-label" style="font-size: 1rem; margin-top: 1rem;">
+            Healthcare Professionals in US
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-with col3:
-    st.markdown("**Infrastructure**")
-    st.markdown("""
-    - Docker
-    - Azure Cloud
-    - GitHub Actions
-    - Nginx
-    - SSL/TLS
-    """)
+with col_market2:
+    st.markdown(f"""
+    <div class="stat-card" style="padding: 2rem;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">🏥</div>
+        <div class="stat-number">106K+</div>
+        <div class="stat-label" style="font-size: 1rem; margin-top: 1rem;">
+            Target Facilities<br>(Hospitals, Nursing Homes, Clinics)
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_market3:
+    st.markdown(f"""
+    <div class="stat-card" style="padding: 2rem;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">💵</div>
+        <div class="stat-number">$18.9B</div>
+        <div class="stat-label" style="font-size: 1rem; margin-top: 1rem;">
+            Total Addressable Market (TAM)
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("---")
+
+# Call to Action
+st.markdown(f"""
+<div style="background: linear-gradient(135deg, {PEACOCK_TEAL} 0%, {LUNAR_BLUE} 100%); padding: 3rem 2rem; border-radius: 15px; text-align: center; color: white;">
+    <h2 style="margin: 0 0 1rem 0;">Ready to Transform Your Clinical Handoffs?</h2>
+    <p style="font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.95;">
+        Explore our interactive demos to see how EclipseLink AI can save time, reduce errors, and improve patient outcomes at your facility.
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <div style="background: white; color: {PEACOCK_TEAL}; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            📧 Schedule a Live Demo
+        </div>
+        <div style="background: rgba(255,255,255,0.2); color: white; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 2px solid white;">
+            📞 Contact Sales
+        </div>
+        <div style="background: rgba(255,255,255,0.2); color: white; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 2px solid white;">
+            📄 Download Brochure
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #64748b; padding: 2rem 0;">
-    <p>EclipseLink AI™ - Transforming Healthcare Communication</p>
-    <p>© 2024 Rohimaya Health AI. All rights reserved.</p>
-    <p style="font-size: 0.9rem; margin-top: 1rem;">
-        🔒 HIPAA Compliant | 📱 Mobile-First | 🤖 AI-Powered
+st.markdown(f"""
+<div style="text-align: center; color: #666; padding: 2rem;">
+    <h3 style="color: {PEACOCK_TEAL}; margin-bottom: 1rem;">About Rohimaya Health AI</h3>
+    <p style="line-height: 1.8; max-width: 800px; margin: 0 auto;">
+        EclipseLink AI™ is the flagship product of <strong>Rohimaya Health AI</strong>, a healthcare technology
+        company dedicated to improving clinical communication and patient safety through AI-powered solutions.
+    </p>
+    <p style="margin-top: 1.5rem;">
+        <strong>Founded by:</strong> Hannah Kraulik Pagade (CEO) • Prasad Pagade (CTO)
+    </p>
+    <p style="margin-top: 1rem;">
+        📧 info@rohimaya.ai • 🌐 rohimaya.ai • 🦚 EclipseLink AI™
+    </p>
+    <p style="font-size: 0.9rem; margin-top: 2rem; color: #999;">
+        © 2025 Rohimaya Health AI. All rights reserved.
     </p>
 </div>
 """, unsafe_allow_html=True)
