@@ -151,14 +151,14 @@ export class AzureOpenAIService {
       console.log(`  - Language: ${options.language || 'auto-detect'}`);
 
       // Call Whisper API
-      const result = await this.client.getAudioTranscription(
+      const result: any = await this.client.getAudioTranscription(
         this.whisperDeployment,
         audioBuffer,
+        'verbose_json' as any,
         {
           language: options.language || 'en',
           prompt: options.prompt,
-          temperature: options.temperature || 0,
-          responseFormat: 'verbose_json' // Get detailed output with timestamps
+          temperature: options.temperature || 0
         }
       );
 
@@ -261,7 +261,7 @@ export class AzureOpenAIService {
         promptTokens: response.usage?.promptTokens || 0,
         completionTokens: response.usage?.completionTokens || 0,
         totalTokens: response.usage?.totalTokens || 0,
-        model: response.model || this.gpt4Deployment,
+        model: (response as any).model || this.gpt4Deployment,
         finishReason: choice.finishReason || 'stop'
       };
 

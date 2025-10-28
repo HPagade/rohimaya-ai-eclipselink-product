@@ -234,13 +234,16 @@ Generate a comprehensive SBAR report from this initial clinical handoff.`;
       }
 
       const result: SBARReport = {
-        ...sbarData,
+        situation: sbarData.situation || '',
+        background: sbarData.background || '',
+        assessment: sbarData.assessment || '',
+        recommendation: sbarData.recommendation || '',
         version: 1,
         isInitial: true,
         previousVersionId: null,
         completenessScore: validation.completenessScore,
         readabilityScore: this.calculateReadabilityScore(sbarData)
-      };
+      } as SBARReport;
 
       console.log(`✅ Initial SBAR generated successfully`);
       console.log(`  - Completeness: ${(result.completenessScore! * 100).toFixed(1)}%`);
@@ -317,13 +320,16 @@ Focus on what has changed - use "[Stable - see v${previousSBAR.version}]" for un
       }
 
       const result: SBARReport = {
-        ...mergedSBAR,
+        situation: mergedSBAR.situation || '',
+        background: mergedSBAR.background || '',
+        assessment: mergedSBAR.assessment || '',
+        recommendation: mergedSBAR.recommendation || '',
         version: previousSBAR.version + 1,
         isInitial: false,
         previousVersionId: previousSBAR.previousVersionId,
         completenessScore: validation.completenessScore,
         readabilityScore: this.calculateReadabilityScore(mergedSBAR)
-      };
+      } as SBARReport;
 
       console.log(`✅ Update SBAR generated successfully`);
       console.log(`  - Version: ${result.version}`);
