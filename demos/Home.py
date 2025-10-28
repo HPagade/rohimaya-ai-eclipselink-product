@@ -130,9 +130,6 @@ with st.sidebar:
     📊 **Clinical Dashboard**
     See real-time management
 
-    💰 **ROI Calculator**
-    Calculate your savings
-
     🚨 **Critical Alert Detection**
     See AI flag critical values
 
@@ -223,7 +220,7 @@ st.markdown("---")
 st.markdown("### Explore Our Interactive Demos")
 
 st.markdown("#### Core Product Features")
-col_demo1, col_demo2, col_demo3 = st.columns(3)
+col_demo1, col_demo2 = st.columns(2)
 
 with col_demo1:
     st.markdown(f"""
@@ -257,24 +254,6 @@ with col_demo2:
             <li>Analytics & insights</li>
             <li>Team activity monitoring</li>
             <li>System notifications</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col_demo3:
-    st.markdown(f"""
-    <div class="demo-card">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">💰</div>
-        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">ROI Calculator</h3>
-        <p style="color: #666; line-height: 1.6;">
-            Calculate your facility's potential time savings and cost reduction. Customize
-            parameters to see personalized ROI projections and 5-year forecasts.
-        </p>
-        <ul style="color: #666; line-height: 1.8;">
-            <li>Customizable inputs</li>
-            <li>Annual cost savings</li>
-            <li>5-year projections</li>
-            <li>Pricing comparisons</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
