@@ -1,0 +1,19 @@
+{
+  "name": "@eclipselink/utils",
+  "version": "1.0.0",
+  "description": "Shared utilities for EclipseLink AI",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "date-fns": "^2.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.0.0"
+  }
+}
