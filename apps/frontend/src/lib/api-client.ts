@@ -232,6 +232,21 @@ class EclipseLinkAPI {
   }
 
   // Patients
+  async createPatient(data: {
+    firstName: string;
+    lastName: string;
+    mrn: string;
+    dateOfBirth: string;
+    gender: string;
+    bloodType?: string;
+    allergies?: string[];
+    medicalHistory?: string;
+    primaryLanguage?: string;
+  }) {
+    const response = await this.client.post('/patients', data);
+    return response.data.data;
+  }
+
   async getPatients(params?: any) {
     const response = await this.client.get('/patients', { params });
     return response.data.data;
@@ -239,6 +254,11 @@ class EclipseLinkAPI {
 
   async getPatient(patientId: string) {
     const response = await this.client.get(`/patients/${patientId}`);
+    return response.data.data;
+  }
+
+  async updatePatient(patientId: string, data: any) {
+    const response = await this.client.put(`/patients/${patientId}`, data);
     return response.data.data;
   }
 

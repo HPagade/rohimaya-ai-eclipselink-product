@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import {
+  createPatient,
   listPatients,
   getPatient,
+  updatePatient,
   getPatientHandoffs
 } from '../controllers/patient.controller';
 import { authenticateJWT } from '../middleware/auth.middleware';
@@ -34,6 +36,16 @@ router.use(authenticateJWT);
 router.use(generalRateLimit);
 
 /**
+ * POST /v1/patients
+ * Create a new patient
+ */
+router.post(
+  '/',
+  requirePermission('patient:create'),
+  asyncHandler(createPatient)
+);
+
+/**
  * GET /v1/patients
  * List patients with search, filtering, and pagination
  */
@@ -53,6 +65,16 @@ router.get(
   requirePermission('patient:read'),
   validate(getPatientSchema),
   asyncHandler(getPatient)
+);
+
+/**
+ * PUT /v1/patients/:id
+ * Update patient information
+ */
+router.put(
+  '/:id',
+  requirePermission('patient:update'),
+  asyncHandler(updatePatient)
 );
 
 /**
