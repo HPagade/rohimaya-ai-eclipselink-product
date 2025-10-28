@@ -144,6 +144,9 @@ with st.sidebar:
 
     🌐 **Multi-Language Translation**
     50+ language support
+
+    🏥 **EHR Integration Flow**
+    Epic, Cerner, MEDITECH
     """)
 
     st.markdown("---")
@@ -358,17 +361,17 @@ with col_demo8:
 with col_demo9:
     st.markdown(f"""
     <div class="demo-card">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🎯</div>
-        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">More Coming Soon</h3>
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🏥</div>
+        <h3 style="color: {PEACOCK_TEAL}; margin-top: 0;">EHR Integration Flow</h3>
         <p style="color: #666; line-height: 1.6;">
-            We're continuously adding new demos to showcase EclipseLink AI's capabilities.
-            Check back soon for EHR integration, offline mode, and ecosystem demos.
+            See seamless bi-directional integration with Epic, Cerner, and MEDITECH.
+            FHIR R4 and HL7 v2.x examples with real data flow visualization.
         </p>
         <ul style="color: #666; line-height: 1.8;">
-            <li>EHR integration flow</li>
-            <li>Offline mode & sync</li>
-            <li>Team collaboration</li>
-            <li>HIPAA audit logs</li>
+            <li>Pull patient data from EHR</li>
+            <li>Push SBAR reports back</li>
+            <li>FHIR R4 & HL7 v2.x support</li>
+            <li>6-8 week implementation</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
