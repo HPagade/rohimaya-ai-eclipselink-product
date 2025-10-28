@@ -1,22 +1,20 @@
 import { Worker, Job } from 'bullmq';
 import { SbarGenerationJobData, notificationQueue } from '../config/queue.config';
 import { azureOpenAIService, ChatMessage } from '../services/azure-openai.service';
+import { db } from '../config/database.config';
+import { DBSbarReport, DBHandoff } from '../types/database.types';
+import crypto from 'crypto';
 
 /**
  * SBAR Generation Worker
  * Processes transcribed handoffs and generates structured SBAR reports
  *
- * Flow:
- * 1. Receive job with transcription text and handoff details
- * 2. Determine if initial or update handoff
- * 3. If update, fetch previous SBAR for comparison context
- * 4. Generate SBAR report with GPT-4 using I-PASS framework
- * 5. Parse and validate SBAR structure
- * 6. Calculate quality metrics (completeness, readability, adherence)
- * 7. Detect changes from previous version (if update)
- * 8. Save SBAR to database
- * 9. Update handoff status to 'ready'
- * 10. Queue notification to assigned provider
+ * Complete implementation with:
+ * - PostgreSQL database integration
+ * - GPT-4 SBAR generation with I-PASS framework
+ * - Quality metrics calculation
+ * - Change detection for update handoffs
+ * - Error handling and retry logic
  */
 
 // Redis connection for worker
@@ -292,29 +290,47 @@ export const sbarGenerationWorker = new Worker<SbarGenerationJobData>(
       facilityId
     } = job.data;
 
-    console.log(`[SBAR Worker] Processing job ${job.id} for handoff ${handoffId}`);
-    console.log(`  - Type: ${isInitialHandoff ? 'INITIAL' : 'UPDATE'}`);
+    console.log(`📋 [SBAR Worker] Processing job ${job.id} for handoff ${handoffId}`);
+    console.log(`  - Type: ${isInitialHandoff ? 'INITIAL ✨' : 'UPDATE 🔄'}`);
     console.log(`  - Transcription length: ${transcriptionText.length} characters`);
+
+    const startTime = Date.now();
 
     try {
       // Update progress: Starting
       await job.updateProgress(10);
 
       // Fetch previous SBAR if this is an update handoff
-      let previousSbar = null;
-      if (!isInitialHandoff && previousSbarId) {
-        // TODO: Fetch from database
-        // previousSbar = await db.query('SELECT * FROM sbar_reports WHERE id = $1', [previousSbarId]);
-        console.log(`[SBAR Worker] Would fetch previous SBAR ${previousSbarId} for comparison`);
+      let previousSbar: any = null;
+      let previousSbarId: string | null = null;
 
-        // Mock previous SBAR for development
-        previousSbar = {
-          version: 1,
-          situation: 'Patient is a 60-year-old female with type 2 diabetes. Blood glucose was 145 mg/dL on last check.',
-          background: 'PMH: Type 2 diabetes x10 years, hypertension, hyperlipidemia. Medications: Metformin 1000mg BID, Lisinopril 10mg daily. Allergies: Penicillin (rash).',
-          assessment: 'VS: T 98.6°F, BP 130/85, HR 78, RR 16, SpO2 98% RA. Blood glucose improving. Patient alert and oriented x3.',
-          recommendation: 'Continue current medications. Monitor blood glucose. Plan discharge in 24-48 hours if stable.'
-        };
+      if (!isInitialHandoff && job.data.previousHandoffId) {
+        // Fetch the most recent SBAR from the previous handoff
+        const prevSbarResult = await db.query<DBSbarReport>(
+          `SELECT * FROM sbar_reports
+           WHERE handoff_id = $1
+           ORDER BY version DESC
+           LIMIT 1`,
+          [job.data.previousHandoffId]
+        );
+
+        if (prevSbarResult.rows.length > 0) {
+          const prev = prevSbarResult.rows[0];
+          previousSbarId = prev.id;
+          previousSbar = {
+            id: prev.id,
+            version: prev.version,
+            situation: prev.situation,
+            background: prev.background,
+            assessment: prev.assessment,
+            recommendation: prev.recommendation
+          };
+
+          console.log(`✅ [SBAR Worker] Fetched previous SBAR from handoff ${job.data.previousHandoffId}`);
+          console.log(`   - Previous version: ${prev.version}`);
+        } else {
+          console.log(`⚠️  [SBAR Worker] No previous SBAR found, treating as initial`);
+        }
       }
 
       // Update progress: Building prompt
@@ -377,41 +393,63 @@ export const sbarGenerationWorker = new Worker<SbarGenerationJobData>(
       // Update progress: Saving to database
       await job.updateProgress(85);
 
-      // TODO: Save SBAR to database
-      const sbarId = `sbar_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Save SBAR to database
+      const sbarId = crypto.randomUUID();
       const version = isInitialHandoff ? 1 : (previousSbar?.version || 0) + 1;
+      const processingDuration = Date.now() - startTime;
 
-      // await db.query(`
-      //   INSERT INTO sbar_reports (
-      //     id, handoff_id, patient_id, facility_id, version, previous_version_id,
-      //     is_initial, situation, background, assessment, recommendation,
-      //     completeness_score, readability_score, adherence_to_ipass,
-      //     critical_info_present, changes_since_last_version,
-      //     ai_model_used, ai_confidence_score, prompt_tokens, completion_tokens,
-      //     generation_duration, status, created_at
-      //   ) VALUES (
-      //     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW()
-      //   )
-      // `, [
-      //   sbarId, handoffId, patientId, facilityId, version, previousSbarId,
-      //   isInitialHandoff, sbar.situation, sbar.background, sbar.assessment, sbar.recommendation,
-      //   qualityMetrics.completenessScore, qualityMetrics.readabilityScore,
-      //   qualityMetrics.adherenceToIPassFramework, qualityMetrics.criticalInfoPresent,
-      //   JSON.stringify(changes), gptResponse.model, 0.95,
-      //   gptResponse.promptTokens, gptResponse.completionTokens,
-      //   Date.now() - startTime, 'completed'
-      // ]);
+      await db.query(
+        `INSERT INTO sbar_reports (
+          id, handoff_id, patient_id, facility_id, version, previous_version_id,
+          is_initial, situation, background, assessment, recommendation,
+          completeness_score, readability_score, adherence_to_ipass_framework,
+          critical_info_present, changes_since_last_version,
+          ai_model_used, ai_confidence_score, prompt_tokens, completion_tokens,
+          total_tokens, generation_duration_ms, status, created_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW()
+        )`,
+        [
+          sbarId,
+          handoffId,
+          patientId,
+          facilityId,
+          version,
+          previousSbarId,
+          isInitialHandoff,
+          sbar.situation,
+          sbar.background,
+          sbar.assessment,
+          sbar.recommendation,
+          qualityMetrics.completenessScore,
+          qualityMetrics.readabilityScore,
+          qualityMetrics.adherenceToIPassFramework,
+          qualityMetrics.criticalInfoPresent,
+          changes.length > 0 ? JSON.stringify(changes) : null,
+          gptResponse.model,
+          0.95, // AI confidence score (high for GPT-4)
+          gptResponse.promptTokens,
+          gptResponse.completionTokens,
+          gptResponse.totalTokens,
+          processingDuration,
+          'completed'
+        ]
+      );
 
-      // TODO: Update handoff status to 'ready'
-      // await db.query(`
-      //   UPDATE handoffs
-      //   SET status = $1, sbar_report_id = $2, sbar_generated_at = NOW()
-      //   WHERE id = $3
-      // `, ['ready', sbarId, handoffId]);
+      console.log(`💾 [SBAR Worker] SBAR saved to database`);
+      console.log(`   - ID: ${sbarId}`);
+      console.log(`   - Version: ${version}`);
+      console.log(`   - Processing time: ${processingDuration}ms`);
 
-      console.log(`[SBAR Worker] SBAR saved to database (stub)`);
-      console.log(`  - ID: ${sbarId}`);
-      console.log(`  - Version: ${version}`);
+      // Update handoff status to 'ready'
+      await db.query(
+        `UPDATE handoffs
+         SET status = $1, updated_at = NOW()
+         WHERE id = $2`,
+        ['ready', handoffId]
+      );
+
+      console.log(`✅ [SBAR Worker] Handoff status updated to 'ready'`);
 
       // Update progress: Queuing notification
       await job.updateProgress(95);
@@ -459,13 +497,37 @@ export const sbarGenerationWorker = new Worker<SbarGenerationJobData>(
         }
       };
 
-    } catch (error) {
-      console.error(`[SBAR Worker] Error processing job ${job.id}:`, error);
+    } catch (error: any) {
+      console.error(`❌ [SBAR Worker] Error processing job ${job.id}:`, error);
 
-      // TODO: Update handoff status to failed
-      // await db.query(`
-      //   UPDATE handoffs SET status = $1, error_message = $2 WHERE id = $3
-      // `, ['failed', error instanceof Error ? error.message : 'Unknown error', handoffId]);
+      // Update handoff status to failed
+      await db.query(
+        `UPDATE handoffs
+         SET status = $1, updated_at = NOW()
+         WHERE id = $2`,
+        ['failed', handoffId]
+      );
+
+      // Save failed AI generation record
+      try {
+        await db.query(
+          `INSERT INTO ai_generations (
+            id, handoff_id, facility_id, generation_stage, generation_status,
+            input_data, error_message, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+            crypto.randomUUID(),
+            handoffId,
+            facilityId,
+            'sbar_generation',
+            'failed',
+            JSON.stringify({ transcriptionId, transcriptionLength: transcriptionText.length }),
+            error.message || 'Unknown error during SBAR generation'
+          ]
+        );
+      } catch (dbError) {
+        console.error(`Failed to save error to ai_generations:`, dbError);
+      }
 
       throw error;
     }
