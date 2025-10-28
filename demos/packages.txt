@@ -1,0 +1,4 @@
+# System packages required for audio processing
+libportaudio2
+libsndfile1
+ffmpeg
