@@ -1,116 +1,43 @@
-# EclipseLink AI - Backend Dockerfile
-# Multi-stage build for production optimization
+# ============================================================================
+# EclipseLink AI Backend - Dockerfile
+# Python 3.11 + FastAPI
+# ============================================================================
 
-# ============================================================
-# Stage 1: Base Dependencies
-# ============================================================
-FROM node:18-alpine AS base
+FROM python:3.11-slim as base
+
+# Set working directory
+WORKDIR /app
 
 # Install system dependencies
-RUN apk add --no-cache \
-    libc6-compat \
-    openssl \
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
     curl \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Copy requirements first (for better caching)
+COPY requirements.txt .
 
-# Copy package files
-COPY package*.json ./
-COPY apps/backend/package*.json ./apps/backend/
-COPY packages ./packages
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# ============================================================
-# Stage 2: Development Dependencies
-# ============================================================
-FROM base AS deps
+# Copy application code
+COPY ./app ./app
 
-# Install all dependencies (including devDependencies)
-RUN npm ci
+# Create non-root user for security
+RUN useradd -m -u 1000 eclipselink && \
+    chown -R eclipselink:eclipselink /app
 
-# ============================================================
-# Stage 3: Builder
-# ============================================================
-FROM base AS builder
+USER eclipselink
 
-WORKDIR /app
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY --from=deps /app/packages ./packages
-
-# Copy source code
-COPY apps/backend ./apps/backend
-COPY tsconfig.json ./
-
-# Build TypeScript
-RUN npm run build:backend
-
-# ============================================================
-# Stage 4: Production Runner
-# ============================================================
-FROM base AS runner
-
-WORKDIR /app
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Copy built files
-COPY --from=builder --chown=nodejs:nodejs /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/packages ./packages
-
-# Copy package.json for scripts
-COPY --chown=nodejs:nodejs package*.json ./
-COPY --chown=nodejs:nodejs apps/backend/package*.json ./apps/backend/
+# Expose port
+EXPOSE 4000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:4000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:4000/health || exit 1
 
-# Switch to non-root user
-USER nodejs
-
-# Expose port
-EXPOSE 4000
-
-# Set environment
-ENV NODE_ENV=production
-ENV PORT=4000
-
-# Start the application
-CMD ["node", "apps/backend/dist/index.js"]
-
-# ============================================================
-# Stage 5: Development Runner (For docker-compose)
-# ============================================================
-FROM base AS development
-
-WORKDIR /app
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY --from=deps /app/packages ./packages
-
-# Copy source code
-COPY apps/backend ./apps/backend
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Install TypeScript and ts-node globally for development
-RUN npm install -g typescript ts-node nodemon
-
-# Expose port
-EXPOSE 4000
-
-# Set environment
-ENV NODE_ENV=development
-ENV PORT=4000
-
-# Start with nodemon for hot reload
-CMD ["npm", "run", "dev:backend"]
+# Run the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "4000", "--reload"]

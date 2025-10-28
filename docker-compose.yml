@@ -43,57 +43,41 @@ services:
       - eclipselink-network
     restart: unless-stopped
 
-  # Backend API
+  # Backend API (Python FastAPI)
   backend:
     build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-      args:
-        NODE_ENV: development
+      context: ./apps/backend
+      dockerfile: Dockerfile
     container_name: eclipselink-backend
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: 4000
+      # Environment
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-true}
 
       # Database
       DATABASE_URL: postgresql://eclipselink_user:${POSTGRES_PASSWORD:-changeme_dev_only}@postgres:5432/eclipselink
 
-      # Redis
-      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme_dev_only}@redis:6379
+      # Supabase (optional - for production)
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_KEY: ${SUPABASE_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
 
-      # JWT
-      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_in_production}
-      JWT_EXPIRES_IN: 7d
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret}
-      JWT_REFRESH_EXPIRES_IN: 30d
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-dev_secret_change_in_production_use_openssl_rand_hex_32}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
 
-      # Azure OpenAI
-      AZURE_OPENAI_KEY: ${AZURE_OPENAI_KEY}
-      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
-      AZURE_OPENAI_DEPLOYMENT_WHISPER: ${AZURE_OPENAI_DEPLOYMENT_WHISPER:-whisper}
-      AZURE_OPENAI_DEPLOYMENT_GPT4: ${AZURE_OPENAI_DEPLOYMENT_GPT4:-gpt-4}
-      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
-
-      # Cloudflare R2 (S3-compatible)
-      CLOUDFLARE_R2_ACCOUNT_ID: ${CLOUDFLARE_R2_ACCOUNT_ID}
-      CLOUDFLARE_R2_ACCESS_KEY: ${CLOUDFLARE_R2_ACCESS_KEY}
-      CLOUDFLARE_R2_SECRET_KEY: ${CLOUDFLARE_R2_SECRET_KEY}
-      CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-eclipselink-voice-recordings}
-      CLOUDFLARE_R2_ENDPOINT: ${CLOUDFLARE_R2_ENDPOINT}
+      # AI Services
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
 
       # CORS
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-
-      # Monitoring (optional)
-      SENTRY_DSN: ${SENTRY_DSN}
-      LOGTAIL_SOURCE_TOKEN: ${LOGTAIL_SOURCE_TOKEN}
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:5173"]'
 
     ports:
       - "4000:4000"
     volumes:
-      - ./apps/backend/src:/app/apps/backend/src
-      - /app/node_modules
-      - /app/apps/backend/node_modules
+      - ./apps/backend/app:/app/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,83 +86,37 @@ services:
     networks:
       - eclipselink-network
     restart: unless-stopped
-    command: npm run dev:backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  # Frontend (Next.js)
+  # Frontend (React + Vite)
   frontend:
     build:
-      context: .
-      dockerfile: apps/frontend/Dockerfile
-      args:
-        NODE_ENV: development
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      target: build
     container_name: eclipselink-frontend
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY}
-      NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:4000/api}
+      VITE_ENVIRONMENT: ${VITE_ENVIRONMENT:-development}
     ports:
       - "3000:3000"
     volumes:
-      - ./apps/frontend/src:/app/apps/frontend/src
-      - ./apps/frontend/public:/app/apps/frontend/public
+      - ./apps/frontend/src:/app/src
+      - ./apps/frontend/public:/app/public
       - /app/node_modules
-      - /app/apps/frontend/node_modules
-      - /app/apps/frontend/.next
     depends_on:
       - backend
     networks:
       - eclipselink-network
     restart: unless-stopped
-    command: npm run dev:frontend
-
-  # Worker (Background Jobs - BullMQ)
-  worker:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-      args:
-        NODE_ENV: development
-    container_name: eclipselink-worker
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-
-      # Database
-      DATABASE_URL: postgresql://eclipselink_user:${POSTGRES_PASSWORD:-changeme_dev_only}@postgres:5432/eclipselink
-
-      # Redis
-      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme_dev_only}@redis:6379
-
-      # Azure OpenAI
-      AZURE_OPENAI_KEY: ${AZURE_OPENAI_KEY}
-      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
-      AZURE_OPENAI_DEPLOYMENT_WHISPER: ${AZURE_OPENAI_DEPLOYMENT_WHISPER:-whisper}
-      AZURE_OPENAI_DEPLOYMENT_GPT4: ${AZURE_OPENAI_DEPLOYMENT_GPT4:-gpt-4}
-      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
-
-      # Cloudflare R2
-      CLOUDFLARE_R2_ACCOUNT_ID: ${CLOUDFLARE_R2_ACCOUNT_ID}
-      CLOUDFLARE_R2_ACCESS_KEY: ${CLOUDFLARE_R2_ACCESS_KEY}
-      CLOUDFLARE_R2_SECRET_KEY: ${CLOUDFLARE_R2_SECRET_KEY}
-      CLOUDFLARE_R2_BUCKET: ${CLOUDFLARE_R2_BUCKET:-eclipselink-voice-recordings}
-      CLOUDFLARE_R2_ENDPOINT: ${CLOUDFLARE_R2_ENDPOINT}
-
-    volumes:
-      - ./apps/backend/src:/app/apps/backend/src
-      - /app/node_modules
-      - /app/apps/backend/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - eclipselink-network
-    restart: unless-stopped
-    command: npm run worker:start
+    command: npm run dev
+    stdin_open: true
+    tty: true
 
 networks:
   eclipselink-network:
