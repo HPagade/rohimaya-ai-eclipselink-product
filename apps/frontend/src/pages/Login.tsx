@@ -1,30 +1,28 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-// import { useNavigate } from 'react-router-dom'  // Will be used in Day 2
-// import { useAuthStore } from '@/store/authStore'  // Will be used in Day 2
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
+import authService from '@/services/authService'
 import toast from 'react-hot-toast'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  // const navigate = useNavigate()  // Will be used in Day 2
-  // const login = useAuthStore((state) => state.login)  // Will be used in Day 2
+  const navigate = useNavigate()
+  const login = useAuthStore((state) => state.login)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await authService.login(email, password)
-      // login(response.token, response.user)
-
-      // Placeholder for development
-      toast.success('Login functionality coming soon!')
-      console.log('Login attempted:', { email, password })
-    } catch (error) {
-      toast.error('Login failed. Please try again.')
+      const response = await authService.login(email, password)
+      login(response.access_token, response.user)
+      toast.success(`Welcome back, ${response.user.first_name}!`)
+      navigate('/dashboard')
+    } catch (error: any) {
+      console.error('Login error:', error)
+      toast.error(error.response?.data?.detail || 'Login failed. Please check your credentials.')
     } finally {
       setLoading(false)
     }
@@ -91,16 +89,6 @@ export default function Login() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-peacock-teal-500 focus:border-transparent transition"
                 placeholder="Enter your password"
               />
-            </div>
-
-            {/* Forgot Password */}
-            <div className="flex items-center justify-between">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-peacock-teal-600 hover:text-peacock-teal-700"
-              >
-                Forgot password?
-              </Link>
             </div>
 
             {/* Submit Button */}
