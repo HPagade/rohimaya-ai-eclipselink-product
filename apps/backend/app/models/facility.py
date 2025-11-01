@@ -31,4 +31,9 @@ class Facility(Base):
     # Relationships
     users = relationship("User", back_populates="facility")
     patients = relationship("Patient", back_populates="facility")
+
+    # EclipseLink AI - Handoffs
     handoffs = relationship("Handoff", back_populates="facility")
+
+    # PlumeDose AI - Medications
+    medications = relationship("Medication", back_populates="facility", cascade="all, delete-orphan")

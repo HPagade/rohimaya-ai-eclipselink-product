@@ -41,4 +41,28 @@ class Patient(Base):
 
     # Relationships
     facility = relationship("Facility", back_populates="patients")
+
+    # EclipseLink AI - Handoffs
     handoffs = relationship("Handoff", back_populates="patient")
+
+    # PlumeDose AI - Medications
+    medication_orders = relationship("MedicationOrder", back_populates="patient", cascade="all, delete-orphan")
+    medication_administrations = relationship("MedicationAdministration", back_populates="patient", cascade="all, delete-orphan")
+
+    # RiseGuard AI - Fall Prevention
+    fall_assessments = relationship("FallAssessment", back_populates="patient", cascade="all, delete-orphan")
+    fall_incidents = relationship("FallIncident", back_populates="patient", cascade="all, delete-orphan")
+    mobility_observations = relationship("PatientMobility", back_populates="patient", cascade="all, delete-orphan")
+
+    # LunarBridge AI - Clinical Trials
+    trial_matches = relationship("TrialMatch", back_populates="patient", cascade="all, delete-orphan")
+    trial_enrollments = relationship("TrialEnrollment", back_populates="patient", cascade="all, delete-orphan")
+
+    # FeatherSight AI - Lab Results
+    lab_results = relationship("LabResult", back_populates="patient", cascade="all, delete-orphan")
+
+    # PhoenixBreath AI - Respiratory
+    respiratory_vitals = relationship("RespiratoryVital", back_populates="patient", cascade="all, delete-orphan")
+
+    # WingStrength AI - PT/OT
+    therapy_sessions = relationship("TherapySession", back_populates="patient", cascade="all, delete-orphan")

@@ -37,7 +37,16 @@ class User(Base):
 
     # Relationships
     facility = relationship("Facility", back_populates="users")
+
+    # EclipseLink AI - Handoffs
     handoffs_created = relationship("Handoff", foreign_keys="Handoff.created_by_id", back_populates="created_by")
     handoffs_assigned = relationship("Handoff", foreign_keys="Handoff.assigned_to_id", back_populates="assigned_to")
-    rewards = relationship("Reward", back_populates="user")
+
+    # Phoenix & Peacock Honors - Rewards System
+    rewards = relationship("Reward", back_populates="user")  # Legacy
+    reward_transactions = relationship("RewardTransaction", back_populates="user", cascade="all, delete-orphan")
+    reward_balance = relationship("RewardBalance", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    achievements = relationship("RewardAchievement", back_populates="user", cascade="all, delete-orphan")
+
+    # Audit Logs
     audit_logs = relationship("AuditLog", back_populates="user")
