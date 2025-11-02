@@ -1,381 +1,210 @@
 -- ============================================================================
--- EclipseLink AI - Database Schema
--- PostgreSQL 15+ (Supabase compatible)
+-- EclipseLink AI - Pilot MVP Database Schema (SOLID Design)
+-- PostgreSQL 15+ for 15-20 user pilot program
+-- Single Responsibility: Each table has ONE clear purpose
 -- ============================================================================
 
--- Enable necessary extensions
+-- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ============================================================================
--- TABLE 1: facilities
+-- TABLE 1: users
+-- Single Responsibility: User authentication and profile management
 -- ============================================================================
-
-CREATE TABLE facilities (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    address TEXT,
-    city VARCHAR(100),
-    state VARCHAR(50),
-    zip_code VARCHAR(20),
-    phone VARCHAR(20),
-    email VARCHAR(255),
-    license_number VARCHAR(100) UNIQUE,
-    subscription_tier VARCHAR(50) DEFAULT 'trial',
-    subscription_status VARCHAR(50) DEFAULT 'active',
-    subscription_expires_at TIMESTAMP WITH TIME ZONE,
-    features JSONB DEFAULT '{"ehr_integration": false}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_facilities_license ON facilities(license_number);
-CREATE INDEX idx_facilities_status ON facilities(subscription_status);
-
--- ============================================================================
--- TABLE 2: users (15 clinical roles)
--- ============================================================================
-
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Authentication (Single Responsibility: Identity)
+    email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    email_verified BOOLEAN DEFAULT FALSE,
-    email_verification_token VARCHAR(255),
-    email_verification_expires_at TIMESTAMP WITH TIME ZONE,
-    reset_password_token VARCHAR(255),
-    reset_password_expires_at TIMESTAMP WITH TIME ZONE,
+
+    -- Profile (Single Responsibility: User Information)
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
-    profile_photo_url TEXT,
-    role VARCHAR(50) NOT NULL,
-    department VARCHAR(100),
+    profession VARCHAR(50) NOT NULL DEFAULT 'RN',
     license_number VARCHAR(100),
-    is_admin BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    last_login_at TIMESTAMP WITH TIME ZONE,
-    last_login_ip VARCHAR(45),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_at TIMESTAMP WITH TIME ZONE
+
+    -- Authorization (Single Responsibility: Access Control)
+    role VARCHAR(20) NOT NULL DEFAULT 'clinician', -- clinician, admin
+    is_active BOOLEAN DEFAULT true,
+
+    -- Security Metadata
+    last_login_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+
+    -- Constraints
+    CONSTRAINT email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT password_hash_length CHECK (LENGTH(password_hash) >= 60)
 );
 
-CREATE INDEX idx_users_facility ON users(facility_id);
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_active ON users(is_active);
+CREATE INDEX idx_users_active ON users(is_active) WHERE is_active = true;
 
 -- ============================================================================
--- TABLE 3: patients
+-- TABLE 2: patients
+-- Single Responsibility: Patient demographic and clinical data
 -- ============================================================================
-
 CREATE TABLE patients (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    mrn VARCHAR(50) NOT NULL,
-    ehr_patient_id VARCHAR(100),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Demographics
+    mrn VARCHAR(50) UNIQUE NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     date_of_birth DATE NOT NULL,
     gender VARCHAR(20),
-    phone VARCHAR(20),
-    email VARCHAR(255),
-    address TEXT,
-    city VARCHAR(100),
-    state VARCHAR(50),
-    zip_code VARCHAR(20),
-    emergency_contact_name VARCHAR(200),
-    emergency_contact_phone VARCHAR(20),
-    emergency_contact_relation VARCHAR(50),
+
+    -- Clinical Status
     room_number VARCHAR(20),
-    admission_date DATE,
-    discharge_date DATE,
     primary_diagnosis TEXT,
-    allergies TEXT,
-    code_status VARCHAR(50),
-    status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_at TIMESTAMP WITH TIME ZONE,
-    UNIQUE(facility_id, mrn)
+    code_status VARCHAR(50) DEFAULT 'Full Code',
+
+    -- Admission Management
+    admission_date TIMESTAMP,
+    discharge_date TIMESTAMP,
+    is_active BOOLEAN DEFAULT true,
+
+    -- Audit Trail
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+
+    -- Constraints
+    CONSTRAINT valid_dob CHECK (date_of_birth <= CURRENT_DATE),
+    CONSTRAINT valid_admission_dates CHECK (discharge_date IS NULL OR discharge_date >= admission_date)
 );
 
-CREATE INDEX idx_patients_facility ON patients(facility_id);
 CREATE INDEX idx_patients_mrn ON patients(mrn);
-CREATE INDEX idx_patients_status ON patients(status);
-CREATE INDEX idx_patients_room ON patients(room_number);
+CREATE INDEX idx_patients_active ON patients(is_active) WHERE is_active = true;
+CREATE INDEX idx_patients_room ON patients(room_number) WHERE room_number IS NOT NULL;
 
 -- ============================================================================
--- TABLE 4: handoffs (Update-Only Model™)
+-- TABLE 3: handoffs
+-- Single Responsibility: Clinical handoff documentation
 -- ============================================================================
-
 CREATE TABLE handoffs (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-    created_by_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    is_baseline BOOLEAN DEFAULT FALSE,
-    baseline_handoff_id INTEGER REFERENCES handoffs(id),
-    audio_file_url TEXT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Relationships
+    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL REFERENCES users(id),
+
+    -- Voice Recording Metadata
+    audio_url TEXT,
     audio_duration_seconds INTEGER,
     audio_file_size_bytes INTEGER,
-    transcript_text TEXT,
-    transcript_confidence DECIMAL(3,2),
-    transcribed_at TIMESTAMP WITH TIME ZONE,
-    sbar_situation TEXT,
-    sbar_background TEXT,
-    sbar_assessment TEXT,
-    sbar_recommendation TEXT,
-    ai_processing_time_ms INTEGER,
-    ai_processed_at TIMESTAMP WITH TIME ZONE,
-    changes_detected JSONB,
-    changes_summary TEXT,
-    has_critical_alert BOOLEAN DEFAULT FALSE,
-    critical_alert_type VARCHAR(100),
-    critical_alert_confidence DECIMAL(3,2),
-    critical_alert_notified_at TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(50) DEFAULT 'draft',
-    reviewed_by_user_id INTEGER REFERENCES users(id),
-    reviewed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_at TIMESTAMP WITH TIME ZONE
+
+    -- AI Processing Results
+    transcription TEXT,
+    transcription_confidence DECIMAL(3,2),
+
+    -- SBAR Components (JSONB for flexibility - Open/Closed Principle)
+    sbar_situation JSONB,
+    sbar_background JSONB,
+    sbar_assessment JSONB,
+    sbar_recommendation JSONB,
+
+    -- Workflow Management
+    shift_type VARCHAR(20), -- day, night, evening
+    status VARCHAR(20) DEFAULT 'draft', -- draft, completed, archived
+
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    completed_at TIMESTAMP,
+
+    -- Constraints
+    CONSTRAINT valid_confidence CHECK (
+        transcription_confidence IS NULL OR
+        (transcription_confidence >= 0 AND transcription_confidence <= 1)
+    ),
+    CONSTRAINT valid_duration CHECK (audio_duration_seconds IS NULL OR audio_duration_seconds > 0)
 );
 
-CREATE INDEX idx_handoffs_facility ON handoffs(facility_id);
 CREATE INDEX idx_handoffs_patient ON handoffs(patient_id);
-CREATE INDEX idx_handoffs_creator ON handoffs(created_by_user_id);
-CREATE INDEX idx_handoffs_baseline ON handoffs(baseline_handoff_id);
+CREATE INDEX idx_handoffs_created_by ON handoffs(created_by);
 CREATE INDEX idx_handoffs_status ON handoffs(status);
-CREATE INDEX idx_handoffs_critical ON handoffs(has_critical_alert);
 CREATE INDEX idx_handoffs_created_at ON handoffs(created_at DESC);
+CREATE INDEX idx_handoffs_shift ON handoffs(shift_type);
+
+-- Full-text search support
+CREATE INDEX idx_handoffs_transcription_fts ON handoffs
+    USING gin(to_tsvector('english', COALESCE(transcription, '')));
 
 -- ============================================================================
--- TABLE 5: handoff_changes (tracks detailed changes)
+-- TABLE 4: audit_logs
+-- Single Responsibility: HIPAA-compliant audit trail
 -- ============================================================================
-
-CREATE TABLE handoff_changes (
-    id SERIAL PRIMARY KEY,
-    handoff_id INTEGER NOT NULL REFERENCES handoffs(id) ON DELETE CASCADE,
-    field_name VARCHAR(100) NOT NULL,
-    old_value TEXT,
-    new_value TEXT,
-    change_type VARCHAR(50),
-    severity VARCHAR(20),
-    ai_confidence DECIMAL(3,2),
-    ai_explanation TEXT,
-    detected_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_changes_handoff ON handoff_changes(handoff_id);
-CREATE INDEX idx_changes_severity ON handoff_changes(severity);
-
--- ============================================================================
--- TABLE 6: rewards_points (gamification)
--- ============================================================================
-
-CREATE TABLE rewards_points (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    points_earned INTEGER NOT NULL,
-    action_type VARCHAR(100) NOT NULL,
-    description TEXT,
-    handoff_id INTEGER REFERENCES handoffs(id) ON DELETE SET NULL,
-    earned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_rewards_user ON rewards_points(user_id);
-CREATE INDEX idx_rewards_facility ON rewards_points(facility_id);
-CREATE INDEX idx_rewards_earned_at ON rewards_points(earned_at DESC);
-
--- ============================================================================
--- TABLE 7: audit_logs (HIPAA 7-year retention)
--- ============================================================================
-
 CREATE TABLE audit_logs (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    action VARCHAR(100) NOT NULL,
-    resource_type VARCHAR(50),
-    resource_id INTEGER,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Actor Information
+    user_id UUID REFERENCES users(id),
+    user_email VARCHAR(255) NOT NULL,
+    user_ip_address VARCHAR(45),
+
+    -- Action Details
+    action VARCHAR(50) NOT NULL,
+    resource_type VARCHAR(50) NOT NULL,
+    resource_id UUID,
+
+    -- Change Tracking
+    changes JSONB,
+    metadata JSONB,
+
+    -- Timestamp
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    -- Constraints
+    CONSTRAINT valid_action CHECK (
+        action IN ('create', 'read', 'update', 'delete', 'login', 'logout', 'export')
+    )
+);
+
+CREATE INDEX idx_audit_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_resource ON audit_logs(resource_type, resource_id);
+CREATE INDEX idx_audit_created_at ON audit_logs(created_at DESC);
+CREATE INDEX idx_audit_action ON audit_logs(action);
+
+-- ============================================================================
+-- TABLE 5: user_sessions
+-- Single Responsibility: Session lifecycle management
+-- ============================================================================
+CREATE TABLE user_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    -- Token Management
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    refresh_token_hash VARCHAR(255) UNIQUE,
+
+    -- Security Context
     ip_address VARCHAR(45),
     user_agent TEXT,
-    request_method VARCHAR(10),
-    request_path TEXT,
-    old_values JSONB,
-    new_values JSONB,
-    is_suspicious BOOLEAN DEFAULT FALSE,
-    suspicious_reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-) PARTITION BY RANGE (created_at);
 
-CREATE TABLE audit_logs_2024 PARTITION OF audit_logs
-    FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
-CREATE TABLE audit_logs_2025 PARTITION OF audit_logs
-    FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');
-CREATE TABLE audit_logs_2026 PARTITION OF audit_logs
-    FOR VALUES FROM ('2026-01-01') TO ('2027-01-01');
+    -- Lifecycle
+    expires_at TIMESTAMP NOT NULL,
+    last_activity_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW(),
+    revoked_at TIMESTAMP,
+    is_active BOOLEAN DEFAULT true,
 
-CREATE INDEX idx_audit_facility ON audit_logs(facility_id);
-CREATE INDEX idx_audit_user ON audit_logs(user_id);
-CREATE INDEX idx_audit_action ON audit_logs(action);
-CREATE INDEX idx_audit_created_at ON audit_logs(created_at DESC);
-
--- ============================================================================
--- TABLE 8: handoff_assignments
--- ============================================================================
-
-CREATE TABLE handoff_assignments (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    assigned_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    shift VARCHAR(20),
-    assignment_date DATE NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    ended_at TIMESTAMP WITH TIME ZONE
+    -- Constraints
+    CONSTRAINT valid_expiry CHECK (expires_at > created_at)
 );
 
-CREATE INDEX idx_assignments_facility ON handoff_assignments(facility_id);
-CREATE INDEX idx_assignments_patient ON handoff_assignments(patient_id);
-CREATE INDEX idx_assignments_user ON handoff_assignments(user_id);
-CREATE INDEX idx_assignments_active ON handoff_assignments(is_active);
-CREATE INDEX idx_assignments_date ON handoff_assignments(assignment_date DESC);
-
--- ============================================================================
--- TABLE 9: notifications
--- ============================================================================
-
-CREATE TABLE notifications (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    priority VARCHAR(20) DEFAULT 'normal',
-    handoff_id INTEGER REFERENCES handoffs(id) ON DELETE CASCADE,
-    patient_id INTEGER REFERENCES patients(id) ON DELETE CASCADE,
-    is_read BOOLEAN DEFAULT FALSE,
-    read_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_notifications_user ON notifications(user_id);
-CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read);
-CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
-
--- ============================================================================
--- TABLE 10: ehr_connections
--- ============================================================================
-
-CREATE TABLE ehr_connections (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    ehr_system VARCHAR(50) NOT NULL,
-    ehr_environment VARCHAR(20) DEFAULT 'production',
-    api_endpoint TEXT NOT NULL,
-    client_id TEXT,
-    client_secret TEXT,
-    access_token TEXT,
-    refresh_token TEXT,
-    token_expires_at TIMESTAMP WITH TIME ZONE,
-    fhir_version VARCHAR(20),
-    is_active BOOLEAN DEFAULT TRUE,
-    last_sync_at TIMESTAMP WITH TIME ZONE,
-    last_sync_status VARCHAR(50),
-    last_sync_error TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_ehr_facility ON ehr_connections(facility_id);
-CREATE INDEX idx_ehr_active ON ehr_connections(is_active);
-
--- ============================================================================
--- TABLE 11: ehr_sync_logs
--- ============================================================================
-
-CREATE TABLE ehr_sync_logs (
-    id SERIAL PRIMARY KEY,
-    ehr_connection_id INTEGER NOT NULL REFERENCES ehr_connections(id) ON DELETE CASCADE,
-    sync_type VARCHAR(50) NOT NULL,
-    records_processed INTEGER DEFAULT 0,
-    records_succeeded INTEGER DEFAULT 0,
-    records_failed INTEGER DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'in_progress',
-    error_message TEXT,
-    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    completed_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_sync_logs_connection ON ehr_sync_logs(ehr_connection_id);
-CREATE INDEX idx_sync_logs_status ON ehr_sync_logs(status);
-CREATE INDEX idx_sync_logs_started_at ON ehr_sync_logs(started_at DESC);
-
--- ============================================================================
--- TABLE 12: critical_alerts
--- ============================================================================
-
-CREATE TABLE critical_alerts (
-    id SERIAL PRIMARY KEY,
-    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE CASCADE,
-    handoff_id INTEGER NOT NULL REFERENCES handoffs(id) ON DELETE CASCADE,
-    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-    detected_by_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    alert_type VARCHAR(100) NOT NULL,
-    severity VARCHAR(20) NOT NULL,
-    ai_confidence DECIMAL(3,2),
-    alert_message TEXT NOT NULL,
-    recommended_actions TEXT,
-    notified_users INTEGER[],
-    notification_method VARCHAR(50),
-    notified_at TIMESTAMP WITH TIME ZONE,
-    acknowledged_by_user_id INTEGER REFERENCES users(id),
-    acknowledged_at TIMESTAMP WITH TIME ZONE,
-    action_taken TEXT,
-    resolved_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_alerts_facility ON critical_alerts(facility_id);
-CREATE INDEX idx_alerts_handoff ON critical_alerts(handoff_id);
-CREATE INDEX idx_alerts_patient ON critical_alerts(patient_id);
-CREATE INDEX idx_alerts_severity ON critical_alerts(severity);
-CREATE INDEX idx_alerts_unresolved ON critical_alerts(resolved_at) WHERE resolved_at IS NULL;
-
--- ============================================================================
--- VIEWS
--- ============================================================================
-
-CREATE VIEW v_user_leaderboard AS
-SELECT
-    u.id,
-    u.facility_id,
-    u.first_name,
-    u.last_name,
-    u.role,
-    COALESCE(SUM(rp.points_earned), 0) as total_points,
-    COUNT(h.id) as total_handoffs,
-    COUNT(CASE WHEN h.is_baseline THEN 1 END) as baseline_handoffs,
-    COUNT(CASE WHEN NOT h.is_baseline THEN 1 END) as update_handoffs
-FROM users u
-LEFT JOIN rewards_points rp ON u.id = rp.user_id
-LEFT JOIN handoffs h ON u.id = h.created_by_user_id
-WHERE u.deleted_at IS NULL
-GROUP BY u.id, u.facility_id, u.first_name, u.last_name, u.role;
+CREATE INDEX idx_sessions_user ON user_sessions(user_id);
+CREATE INDEX idx_sessions_token ON user_sessions(token_hash);
+CREATE INDEX idx_sessions_active ON user_sessions(is_active) WHERE is_active = true;
+CREATE INDEX idx_sessions_expires ON user_sessions(expires_at);
 
 -- ============================================================================
 -- FUNCTIONS & TRIGGERS
+-- Dependency Inversion: Generic update trigger
 -- ============================================================================
-
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -384,41 +213,203 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_facilities_updated_at BEFORE UPDATE ON facilities
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+
+CREATE TRIGGER update_patients_updated_at
+    BEFORE UPDATE ON patients
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_patients_updated_at BEFORE UPDATE ON patients
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_handoffs_updated_at BEFORE UPDATE ON handoffs
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_ehr_connections_updated_at BEFORE UPDATE ON ehr_connections
+
+CREATE TRIGGER update_handoffs_updated_at
+    BEFORE UPDATE ON handoffs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
--- ROW LEVEL SECURITY (Enable for Supabase)
+-- AUTOMATIC AUDIT LOGGING
+-- Dependency Inversion: Generic audit trigger
+-- ============================================================================
+CREATE OR REPLACE FUNCTION log_audit_trail()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'DELETE') THEN
+        INSERT INTO audit_logs (user_email, action, resource_type, resource_id, changes)
+        VALUES (
+            current_setting('app.current_user_email', true),
+            'delete',
+            TG_TABLE_NAME,
+            OLD.id,
+            row_to_json(OLD)
+        );
+        RETURN OLD;
+    ELSIF (TG_OP = 'UPDATE') THEN
+        INSERT INTO audit_logs (user_email, action, resource_type, resource_id, changes)
+        VALUES (
+            current_setting('app.current_user_email', true),
+            'update',
+            TG_TABLE_NAME,
+            NEW.id,
+            jsonb_build_object('old', row_to_json(OLD), 'new', row_to_json(NEW))
+        );
+        RETURN NEW;
+    ELSIF (TG_OP = 'INSERT') THEN
+        INSERT INTO audit_logs (user_email, action, resource_type, resource_id, changes)
+        VALUES (
+            current_setting('app.current_user_email', true),
+            'create',
+            TG_TABLE_NAME,
+            NEW.id,
+            row_to_json(NEW)
+        );
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply audit logging to critical tables
+CREATE TRIGGER audit_patients
+    AFTER INSERT OR UPDATE OR DELETE ON patients
+    FOR EACH ROW EXECUTE FUNCTION log_audit_trail();
+
+CREATE TRIGGER audit_handoffs
+    AFTER INSERT OR UPDATE OR DELETE ON handoffs
+    FOR EACH ROW EXECUTE FUNCTION log_audit_trail();
+
+-- ============================================================================
+-- VIEWS: Single Responsibility - Data Aggregation
 -- ============================================================================
 
-ALTER TABLE facilities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+-- View: Active patients with handoff summary
+CREATE VIEW v_active_patients AS
+SELECT
+    p.id,
+    p.mrn,
+    p.first_name,
+    p.last_name,
+    p.room_number,
+    p.primary_diagnosis,
+    p.admission_date,
+    COUNT(h.id) as handoff_count,
+    MAX(h.created_at) as last_handoff_at,
+    u.first_name || ' ' || u.last_name as last_handoff_by
+FROM patients p
+LEFT JOIN handoffs h ON p.id = h.patient_id AND h.status = 'completed'
+LEFT JOIN users u ON h.created_by = u.id
+WHERE p.is_active = true
+GROUP BY p.id, u.first_name, u.last_name;
+
+-- View: User activity dashboard
+CREATE VIEW v_user_activity AS
+SELECT
+    u.id,
+    u.email,
+    u.first_name,
+    u.last_name,
+    u.profession,
+    u.role,
+    COUNT(DISTINCT h.id) as handoffs_created,
+    COUNT(DISTINCT h.patient_id) as patients_handled,
+    MAX(h.created_at) as last_handoff_at,
+    u.last_login_at,
+    u.created_at as user_since
+FROM users u
+LEFT JOIN handoffs h ON u.id = h.created_by
+WHERE u.is_active = true
+GROUP BY u.id;
+
+-- View: Daily handoff statistics
+CREATE VIEW v_daily_handoff_stats AS
+SELECT
+    DATE(h.created_at) as date,
+    COUNT(*) as total_handoffs,
+    COUNT(DISTINCT h.patient_id) as unique_patients,
+    COUNT(DISTINCT h.created_by) as active_clinicians,
+    AVG(h.audio_duration_seconds) as avg_audio_duration,
+    AVG(h.transcription_confidence) as avg_confidence,
+    COUNT(*) FILTER (WHERE h.shift_type = 'day') as day_shift_handoffs,
+    COUNT(*) FILTER (WHERE h.shift_type = 'night') as night_shift_handoffs,
+    COUNT(*) FILTER (WHERE h.shift_type = 'evening') as evening_shift_handoffs
+FROM handoffs h
+WHERE h.status = 'completed'
+GROUP BY DATE(h.created_at)
+ORDER BY date DESC;
+
+-- ============================================================================
+-- ROW-LEVEL SECURITY (RLS)
+-- Single Responsibility: Data access control
+-- ============================================================================
 ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE handoffs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE handoff_changes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE rewards_points ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE handoff_assignments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ehr_connections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ehr_sync_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE critical_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
+
+-- Policy: All authenticated users can view patients (pilot - single facility)
+CREATE POLICY "authenticated_users_view_patients"
+    ON patients FOR SELECT
+    USING (auth.role() = 'authenticated');
+
+-- Policy: All authenticated users can create patients
+CREATE POLICY "authenticated_users_create_patients"
+    ON patients FOR INSERT
+    WITH CHECK (auth.role() = 'authenticated');
+
+-- Policy: Users can update any patient (pilot - collaborative environment)
+CREATE POLICY "authenticated_users_update_patients"
+    ON patients FOR UPDATE
+    USING (auth.role() = 'authenticated');
+
+-- Policy: All authenticated users can view handoffs
+CREATE POLICY "authenticated_users_view_handoffs"
+    ON handoffs FOR SELECT
+    USING (auth.role() = 'authenticated');
+
+-- Policy: Users can create handoffs
+CREATE POLICY "authenticated_users_create_handoffs"
+    ON handoffs FOR INSERT
+    WITH CHECK (auth.role() = 'authenticated' AND created_by = auth.uid());
+
+-- Policy: Users can update their own handoffs
+CREATE POLICY "users_update_own_handoffs"
+    ON handoffs FOR UPDATE
+    USING (created_by = auth.uid());
+
+-- Policy: Admins can view all audit logs
+CREATE POLICY "admins_view_audit_logs"
+    ON audit_logs FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM users
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+-- Policy: Users can only view their own sessions
+CREATE POLICY "users_view_own_sessions"
+    ON user_sessions FOR SELECT
+    USING (user_id = auth.uid());
 
 -- ============================================================================
--- SEED DATA (Demo facility for development)
+-- INITIAL SEED DATA
 -- ============================================================================
 
-INSERT INTO facilities (name, address, city, state, zip_code, phone, email, license_number, subscription_tier)
-VALUES ('Demo General Hospital', '123 Healthcare Blvd', 'Medical City', 'CA', '90210', '555-0100', 'admin@demohospital.com', 'LIC-DGH-2024', 'premium');
+-- Create admin user (password: Admin123!)
+INSERT INTO users (email, password_hash, first_name, last_name, profession, role)
+VALUES (
+    'admin@eclipselink.local',
+    '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5zcJb7F3pJ/kS',
+    'System',
+    'Administrator',
+    'Admin',
+    'admin'
+);
 
 -- ============================================================================
 -- END OF SCHEMA
+-- Created with SOLID principles:
+-- - Single Responsibility: Each table has one clear purpose
+-- - Open/Closed: JSONB fields allow extension without modification
+-- - Liskov Substitution: Consistent interface across all tables
+-- - Interface Segregation: Minimal, focused views for specific needs
+-- - Dependency Inversion: Generic triggers and functions
 -- ============================================================================
