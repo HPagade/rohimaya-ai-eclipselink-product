@@ -10,7 +10,7 @@
 
 Transforming 3-5 minute voice recordings into structured SBAR reports in under 30 seconds
 
-[Quick Start](#-quick-start) • [Features](#-features) • [Architecture](#-architecture) • [Support](#-support)
+[🚀 Getting Started](GETTING-STARTED.md) • [Quick Start](#-quick-start) • [Features](#-features) • [Architecture](#-architecture) • [Docs](docs/DOCUMENTATION-INDEX.md)
 
 </div>
 
@@ -61,8 +61,8 @@ EclipseLink AI™ is a **HIPAA-compliant voice-enabled clinical handoff platform
 
 ```bash
 # Clone the repository
-git clone https://github.com/HPagade/rohimaya-ai-eclipselink-product.git
-cd rohimaya-ai-eclipselink-product
+git clone https://github.com/HPagade/[REPOSITORY-NAME].git
+cd [REPOSITORY-NAME]
 
 # Copy environment configuration
 cp .env.example .env
@@ -70,6 +70,8 @@ cp .env.example .env
 # Edit .env with your Azure OpenAI credentials and other settings
 nano .env  # or use your preferred editor
 ```
+
+> **Note:** Repository name has been obscured for security. If you have access to this repository, you already know the correct name.
 
 ### 2. Start with Docker (Fastest)
 
@@ -299,7 +301,7 @@ EclipseLink AI is built HIPAA-compliant from the ground up:
 
 ```bash
 # See comprehensive guide
-cat PRODUCTION-DEPLOYMENT.md
+cat docs/deployment/PRODUCTION-DEPLOYMENT.md
 
 # Or follow quick Railway + Vercel guide (Option 1)
 ```
@@ -360,9 +362,9 @@ kubectl apply -f k8s/06-ingress.yaml   # Edit domain first!
 
 | Resource | Description |
 |----------|-------------|
-| **[PRODUCTION-DEPLOYMENT.md](PRODUCTION-DEPLOYMENT.md)** | Complete deployment guide (Railway, Vercel, Docker, K8s, AWS) |
-| **[SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md)** | Pre-deployment security checklist |
-| **[SECURITY-ADVISORY.md](SECURITY-ADVISORY.md)** | Known security issues and mitigations |
+| **[PRODUCTION-DEPLOYMENT.md](docs/deployment/PRODUCTION-DEPLOYMENT.md)** | Complete deployment guide (Railway, Vercel, Docker, K8s, AWS) |
+| **[SECURITY-CHECKLIST.md](docs/security/SECURITY-CHECKLIST.md)** | Pre-deployment security checklist |
+| **[SECURITY-ADVISORY.md](docs/security/SECURITY-ADVISORY.md)** | Known security issues and mitigations |
 | **[Makefile](Makefile)** | Easy deployment commands (`make help`) |
 | **[k8s/](k8s/)** | Kubernetes manifests |
 | **`.env.production.example`** | Production environment template |
@@ -397,7 +399,7 @@ make logs            # View logs
 
 Before deploying to production:
 
-- [ ] Review **[SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md)**
+- [ ] Review **[SECURITY-CHECKLIST.md](docs/security/SECURITY-CHECKLIST.md)**
 - [ ] All secrets changed from defaults
 - [ ] `SECRET_KEY` generated with `openssl rand -hex 32`
 - [ ] API keys configured (OpenAI, Anthropic)
@@ -440,33 +442,32 @@ Earn rewards points across all products
 
 ## 📚 Documentation
 
-### Quick Links
-- **[Production Deployment Guide](PRODUCTION-DEPLOYMENT.md)** - Complete deployment guide for all platforms ⭐
-- **[Security Checklist](SECURITY-CHECKLIST.md)** - Pre-deployment security review
-- **[Security Advisory](SECURITY-ADVISORY.md)** - Known issues and mitigations
-- **[Wireframes & User Flows](WIREFRAMES.md)** - UI mockups and navigation flows
+### 📖 Complete Documentation Index
+**[→ See Full Documentation Index](docs/DOCUMENTATION-INDEX.md)** - Complete guide to all documentation
+
+### Quick Start Documentation
 - **[Setup Guide](SETUP.md)** - Detailed installation instructions
-- **[Developer Guide](README-DEVELOPERS.md)** - Development workflow and best practices
 - **[User Guide](README-USERS.md)** - End-user documentation
 - **[Changelog](CHANGELOG.md)** - Version history and changes
-- **[Deployment Checklist](DEPLOYMENT-CHECKLIST-AND-REVENUE-GUIDE.md)** - Revenue strategy
 
-### Deployment Documentation
+### Deployment & Production
+- **[Production Deployment Guide](docs/deployment/PRODUCTION-DEPLOYMENT.md)** - Complete deployment guide ⭐
+- **[Security Checklist](docs/security/SECURITY-CHECKLIST.md)** - Pre-deployment security review ⭐
+- **[Deployment Checklist](docs/deployment/DEPLOYMENT-CHECKLIST-AND-REVENUE-GUIDE.md)** - Revenue strategy
 - **[Kubernetes Manifests](k8s/)** - Enterprise Kubernetes deployment
 - **[Makefile](Makefile)** - Quick deployment commands
-- **`.env.production.example`** - Production configuration template
-- **`docker-compose.prod.yml`** - Production Docker Compose
-- **`scripts/validate-env.py`** - Environment validation tool
 
-### Archived Documentation
-Comprehensive technical documentation is available in `docs/archive/`:
-- Architecture overview
-- Database schema and ERD
-- API documentation (auth, handoffs, SBAR, EHR)
-- Security and HIPAA compliance
-- Deployment and DevOps
-- Testing strategy
-- Scaling and roadmap
+### Development
+- **[Developer Guide](docs/development/README-DEVELOPERS.md)** - Development workflow and best practices
+- **[Contributing Guide](docs/development/CONTRIBUTING.md)** - How to contribute
+
+### Product Information
+- **[All Products Overview](docs/products/ALL-PRODUCTS-OVERVIEW.md)** - Complete 8-product ecosystem
+- **[EclipseLink MVP Brief](docs/products/ECLIPSELINK-AI-MVP-DEVELOPMENT-BRIEF.md)** - Detailed MVP specifications
+- **[Wireframes & UI](docs/products/WIREFRAMES.md)** - UI mockups and navigation flows
+
+### Archive
+Comprehensive technical documentation is available in `docs/archive/` covering architecture, database schemas, API specs, HIPAA compliance, and more.
 
 ---
 

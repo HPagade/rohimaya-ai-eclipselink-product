@@ -34,7 +34,7 @@ jobs:
 
       - name: Check for critical vulnerabilities
         run: |
-          npm audit --audit-level=critical || echo "⚠️ Found vulnerabilities, check SECURITY-ADVISORY.md"
+          npm audit --audit-level=critical || echo "⚠️ Found vulnerabilities, check docs/security/SECURITY-ADVISORY.md"
 
   test-backend:
     name: Backend Tests (Python FastAPI)
@@ -120,6 +120,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Install PyYAML
+        run: pip install pyyaml
 
       - name: Validate docker-compose files
         run: |

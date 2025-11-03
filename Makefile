@@ -325,11 +325,12 @@ quickstart:
 docs:
 	@echo "📚 Available documentation:"
 	@echo ""
-	@echo "  README.md                    - Project overview"
-	@echo "  PRODUCTION-DEPLOYMENT.md     - Production deployment guide"
-	@echo "  SETUP.md                     - Setup instructions"
-	@echo "  README-DEVELOPERS.md         - Developer guide"
-	@echo "  DEPLOYMENT-CHECKLIST...md    - Deployment & revenue guide"
+	@echo "  README.md                            - Project overview"
+	@echo "  GETTING-STARTED.md                   - Beginner-friendly setup guide"
+	@echo "  docs/DOCUMENTATION-INDEX.md          - Complete documentation index"
+	@echo "  docs/deployment/PRODUCTION-DEPLOYMENT.md - Production deployment guide"
+	@echo "  docs/security/SECURITY-CHECKLIST.md  - Security checklist"
+	@echo "  docs/development/README-DEVELOPERS.md - Developer guide"
 	@echo ""
 
 # ============================================================================
