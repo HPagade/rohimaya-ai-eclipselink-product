@@ -34,7 +34,7 @@ jobs:
 
       - name: Check for critical vulnerabilities
         run: |
-          npm audit --audit-level=critical || echo "⚠️ Found vulnerabilities, check SECURITY-ADVISORY.md"
+          npm audit --audit-level=critical || echo "⚠️ Found vulnerabilities, check docs/security/SECURITY-ADVISORY.md"
 
   test-backend:
     name: Backend Tests (Python FastAPI)
