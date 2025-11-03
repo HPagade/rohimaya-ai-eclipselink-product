@@ -1,0 +1,12 @@
+{
+  "build": {
+    "command": "npm run build",
+    "cwd": "/",
+    "watch_paths": [
+      "src/**"
+    ]
+  },
+  "env": {
+    "NODE_VERSION": "18"
+  }
+}

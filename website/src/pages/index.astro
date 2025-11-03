@@ -1,0 +1,509 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="EclipseLink AI - Transform Clinical Handoffs with AI">
+  <Header />
+
+  <!-- Hero Section -->
+  <section class="pt-32 pb-20 px-6 bg-gradient-to-br from-primary-50 via-white to-medical-50">
+    <div class="container mx-auto max-w-6xl">
+      <div class="text-center">
+        <div class="inline-block mb-4 px-4 py-2 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold">
+          ✨ Production Ready | $21/month | 15-User Pilot MVP
+        </div>
+        <h1 class="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary-600 to-medical-600 bg-clip-text text-transparent">
+          Transform Clinical Handoffs with AI
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          AI-powered SBAR generation, QR code family access, and real-time collaboration.
+          Built for nurses, doctors, and all healthcare stakeholders.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a href="#demo" class="px-8 py-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-semibold text-lg shadow-lg hover:shadow-xl">
+            Request Demo →
+          </a>
+          <a href="#pricing" class="px-8 py-4 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition font-semibold text-lg">
+            View Pricing
+          </a>
+        </div>
+
+        <!-- Stats -->
+        <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <div class="text-4xl font-bold text-primary-600">$21</div>
+            <div class="text-gray-600 text-sm">per month</div>
+          </div>
+          <div>
+            <div class="text-4xl font-bold text-medical-600">500</div>
+            <div class="text-gray-600 text-sm">handoffs/month</div>
+          </div>
+          <div>
+            <div class="text-4xl font-bold text-primary-600">30min</div>
+            <div class="text-gray-600 text-sm">deployment</div>
+          </div>
+          <div>
+            <div class="text-4xl font-bold text-medical-600">95%</div>
+            <div class="text-gray-600 text-sm">profit margin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="py-20 px-6">
+    <div class="container mx-auto max-w-6xl">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold mb-4">Powerful Features for Every Stakeholder</h2>
+        <p class="text-xl text-gray-600">Built for clinicians, families, patients, and administrators</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Feature 1: AI-Powered SBAR -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition">
+          <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">AI-Powered SBAR</h3>
+          <p class="text-gray-600 mb-4">
+            Record audio handoffs and get structured SBAR notes in seconds. Uses Whisper for transcription and Claude Sonnet 4 for intelligent generation.
+          </p>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>✓ Automatic transcription</li>
+            <li>✓ Structured clinical notes</li>
+            <li>✓ Critical alert detection</li>
+            <li>✓ 40% cost savings with smart caching</li>
+          </ul>
+        </div>
+
+        <!-- Feature 2: QR Code Family Access -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition">
+          <div class="w-12 h-12 bg-medical-100 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">QR Code Family Access</h3>
+          <p class="text-gray-600 mb-4">
+            Revolutionary feature: families scan QR codes for instant access. No signup, no passwords, no app downloads required.
+          </p>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>✓ No account creation needed</li>
+            <li>✓ Time-limited secure tokens</li>
+            <li>✓ 6-digit PIN protection</li>
+            <li>✓ Real-time updates</li>
+          </ul>
+        </div>
+
+        <!-- Feature 3: Multi-Tenant SaaS -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition">
+          <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Multi-Tenant SaaS</h3>
+          <p class="text-gray-600 mb-4">
+            Scale to 100+ hospitals with a single deployment. Complete data isolation with Row-Level Security (RLS).
+          </p>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>✓ Facility-level isolation</li>
+            <li>✓ Unlimited facilities</li>
+            <li>✓ Centralized administration</li>
+            <li>✓ White-label ready</li>
+          </ul>
+        </div>
+
+        <!-- Feature 4: Real-Time Collaboration -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition">
+          <div class="w-12 h-12 bg-medical-100 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Real-Time Updates</h3>
+          <p class="text-gray-600 mb-4">
+            WebSocket-powered real-time notifications and updates. Everyone stays informed instantly.
+          </p>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>✓ Instant notifications</li>
+            <li>✓ Live handoff status</li>
+            <li>✓ Critical alert pushes</li>
+            <li>✓ Multi-device sync</li>
+          </ul>
+        </div>
+
+        <!-- Feature 5: Offline PWA -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition">
+          <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Offline-First PWA</h3>
+          <p class="text-gray-600 mb-4">
+            Progressive Web App works offline. Record handoffs without internet, sync when connected.
+          </p>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>✓ Offline recording</li>
+            <li>✓ Background sync</li>
+            <li>✓ Install on mobile</li>
+            <li>✓ No app store needed</li>
+          </ul>
+        </div>
+
+        <!-- Feature 6: HIPAA Compliant -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition">
+          <div class="w-12 h-12 bg-medical-100 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-2">HIPAA Compliant</h3>
+          <p class="text-gray-600 mb-4">
+            Built with healthcare security in mind. Complete audit trails, encrypted data, and compliance-ready.
+          </p>
+          <ul class="space-y-2 text-sm text-gray-600">
+            <li>✓ End-to-end encryption</li>
+            <li>✓ Complete audit logs</li>
+            <li>✓ Role-based access</li>
+            <li>✓ Data isolation (RLS)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture Highlights -->
+  <section class="py-20 px-6 bg-gray-50">
+    <div class="container mx-auto max-w-6xl">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold mb-4">Production-Ready Architecture</h2>
+        <p class="text-xl text-gray-600">Built with modern, scalable, and cost-effective technologies</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- Tech Stack -->
+        <div class="bg-white p-8 rounded-xl shadow-lg">
+          <h3 class="text-2xl font-bold mb-6">Technology Stack</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">Database</span>
+              <span class="text-primary-600">PostgreSQL 15+ (Supabase)</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">Backend</span>
+              <span class="text-primary-600">Deno Edge Functions</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">Frontend</span>
+              <span class="text-primary-600">Next.js 14 + TypeScript</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">AI</span>
+              <span class="text-primary-600">Whisper + Claude Sonnet 4</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">Deployment</span>
+              <span class="text-primary-600">Vercel + Supabase</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cost Breakdown -->
+        <div class="bg-white p-8 rounded-xl shadow-lg">
+          <h3 class="text-2xl font-bold mb-6">Cost Breakdown</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">Supabase</span>
+              <span class="text-medical-600 font-bold">$0/month</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">Vercel Hosting</span>
+              <span class="text-medical-600 font-bold">$0/month</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">OpenAI Whisper</span>
+              <span class="text-gray-600">$6/month</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span class="font-semibold">Anthropic Claude</span>
+              <span class="text-gray-600">$15/month</span>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-primary-50 rounded-lg border-2 border-primary-200">
+              <span class="font-bold text-lg">Total (500 handoffs)</span>
+              <span class="text-primary-600 font-bold text-2xl">$21/month</span>
+            </div>
+          </div>
+          <p class="text-sm text-gray-500 mt-4">vs. $200+/month with traditional architecture</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="py-20 px-6">
+    <div class="container mx-auto max-w-6xl">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
+        <p class="text-xl text-gray-600">95% profit margin | Start with 15-user pilot, scale to 1000+ users</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Pilot Plan -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-gray-200">
+          <div class="text-sm font-semibold text-primary-600 mb-2">PILOT</div>
+          <div class="text-4xl font-bold mb-2">$29<span class="text-xl text-gray-500">/user/mo</span></div>
+          <div class="text-gray-600 mb-6">15-20 users</div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>500 handoffs/month</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>All features included</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>QR code family access</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Email support</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>30-day money back</span>
+            </li>
+          </ul>
+          <a href="#demo" class="block w-full text-center px-6 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition font-semibold">
+            Start Pilot
+          </a>
+          <div class="mt-4 text-center text-sm text-gray-500">
+            Revenue: $435/mo | Profit: $414/mo
+          </div>
+        </div>
+
+        <!-- Growth Plan -->
+        <div class="bg-gradient-to-br from-primary-600 to-medical-600 p-8 rounded-xl shadow-2xl border-2 border-primary-600 transform scale-105">
+          <div class="text-sm font-semibold text-primary-100 mb-2">GROWTH</div>
+          <div class="text-4xl font-bold text-white mb-2">$29<span class="text-xl text-primary-100">/user/mo</span></div>
+          <div class="text-primary-100 mb-6">50-100 users</div>
+          <ul class="space-y-3 mb-8 text-white">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-200 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>3,000 handoffs/month</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-200 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Everything in Pilot</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-200 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Priority support</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-200 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Custom integrations</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-200 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Dedicated onboarding</span>
+            </li>
+          </ul>
+          <a href="#demo" class="block w-full text-center px-6 py-3 bg-white text-primary-600 rounded-lg hover:bg-gray-100 transition font-semibold">
+            Get Started
+          </a>
+          <div class="mt-4 text-center text-sm text-primary-100">
+            Revenue: $2,900/mo | Profit: $2,749/mo
+          </div>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-gray-200">
+          <div class="text-sm font-semibold text-primary-600 mb-2">ENTERPRISE</div>
+          <div class="text-4xl font-bold mb-2">Custom</div>
+          <div class="text-gray-600 mb-6">100+ users</div>
+          <ul class="space-y-3 mb-8">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Unlimited handoffs</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Everything in Growth</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>White-label option</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>24/7 phone support</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-medical-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>SLA guarantee</span>
+            </li>
+          </ul>
+          <a href="#contact" class="block w-full text-center px-6 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition font-semibold">
+            Contact Sales
+          </a>
+          <div class="mt-4 text-center text-sm text-gray-500">
+            Multi-facility discount available
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demo Request Form -->
+  <section id="demo" class="py-20 px-6 bg-gradient-to-br from-primary-600 to-medical-600 text-white">
+    <div class="container mx-auto max-w-4xl">
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold mb-4">Request a Demo</h2>
+        <p class="text-xl text-primary-100">See EclipseLink AI in action. Schedule a personalized demo with our team.</p>
+      </div>
+
+      <form class="bg-white rounded-xl p-8 shadow-2xl">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2">Full Name *</label>
+            <input type="text" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900" placeholder="Dr. Jane Smith">
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2">Email *</label>
+            <input type="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900" placeholder="jane@hospital.com">
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2">Hospital/Organization *</label>
+            <input type="text" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900" placeholder="City General Hospital">
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2">Role *</label>
+            <select required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900">
+              <option value="">Select your role</option>
+              <option value="nurse">Registered Nurse</option>
+              <option value="doctor">Physician</option>
+              <option value="admin">Administrator</option>
+              <option value="it">IT Manager</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2">Number of Users</label>
+            <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900">
+              <option value="">Select range</option>
+              <option value="15-20">15-20 (Pilot)</option>
+              <option value="50-100">50-100 (Growth)</option>
+              <option value="100+">100+ (Enterprise)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-700 font-semibold mb-2">Phone (Optional)</label>
+            <input type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900" placeholder="+1 (555) 123-4567">
+          </div>
+        </div>
+        <div class="mt-6">
+          <label class="block text-gray-700 font-semibold mb-2">Message</label>
+          <textarea rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500 text-gray-900" placeholder="Tell us about your needs..."></textarea>
+        </div>
+        <button type="submit" class="mt-6 w-full px-8 py-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-semibold text-lg shadow-lg">
+          Request Demo →
+        </button>
+        <p class="text-gray-500 text-sm text-center mt-4">We'll respond within 24 hours</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Documentation Preview -->
+  <section id="documentation" class="py-20 px-6 bg-gray-50">
+    <div class="container mx-auto max-w-6xl">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-bold mb-4">Comprehensive Documentation</h2>
+        <p class="text-xl text-gray-600">Everything you need to deploy and scale</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <a href="#" class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition border border-gray-100">
+          <div class="text-3xl mb-3">📖</div>
+          <h3 class="font-bold mb-2">Deployment Guide</h3>
+          <p class="text-gray-600 text-sm">Step-by-step deployment in 30 minutes</p>
+        </a>
+        <a href="#" class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition border border-gray-100">
+          <div class="text-3xl mb-3">🏗️</div>
+          <h3 class="font-bold mb-2">Architecture</h3>
+          <p class="text-gray-600 text-sm">Multi-tenant SaaS architecture details</p>
+        </a>
+        <a href="#" class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition border border-gray-100">
+          <div class="text-3xl mb-3">🔧</div>
+          <h3 class="font-bold mb-2">API Reference</h3>
+          <p class="text-gray-600 text-sm">Complete API documentation</p>
+        </a>
+        <a href="#" class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition border border-gray-100">
+          <div class="text-3xl mb-3">🐛</div>
+          <h3 class="font-bold mb-2">Error Fixes</h3>
+          <p class="text-gray-600 text-sm">Complete error report with solutions</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-20 px-6 bg-gradient-to-r from-primary-600 to-medical-600 text-white">
+    <div class="container mx-auto max-w-4xl text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-6">Ready to Transform Your Clinical Handoffs?</h2>
+      <p class="text-xl mb-8 text-primary-100">Join healthcare facilities already using EclipseLink AI</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#demo" class="px-8 py-4 bg-white text-primary-600 rounded-lg hover:bg-gray-100 transition font-semibold text-lg shadow-lg">
+          Request Demo →
+        </a>
+        <a href="#contact" class="px-8 py-4 border-2 border-white text-white rounded-lg hover:bg-white/10 transition font-semibold text-lg">
+          Contact Sales
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Layout>
+
+<style>
+  /* Smooth scrolling handled by Layout.astro */
+</style>
