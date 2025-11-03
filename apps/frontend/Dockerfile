@@ -12,8 +12,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies (use npm install if no lock file, npm ci if lock file exists)
-RUN if [ -f package-lock.json ]; then npm ci --only=production --ignore-scripts; else npm install --only=production --ignore-scripts; fi
+# Install dependencies including dev dependencies (needed for build)
+RUN if [ -f package-lock.json ]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
 
 # Copy source code
 COPY . .
