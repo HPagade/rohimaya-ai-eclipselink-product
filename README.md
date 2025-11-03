@@ -291,33 +291,122 @@ EclipseLink AI is built HIPAA-compliant from the ground up:
 
 ## 🌐 Deployment
 
-### Cloud Deployment (Small Hospitals)
+**⚡ Quick Deploy:** Use `make` commands for easy deployment!
+
+### Option 1: Cloud Deployment (Recommended for Small-Medium)
+
+**Fastest deployment:** Railway + Vercel (~30 minutes)
+
+```bash
+# See comprehensive guide
+cat PRODUCTION-DEPLOYMENT.md
+
+# Or follow quick Railway + Vercel guide (Option 1)
+```
 
 **Services:**
-- Frontend: Cloudflare Pages (CDN + hosting)
-- Backend: Railway (auto-scaling Node.js)
-- Database: Supabase (PostgreSQL 15+ with backups)
-- Storage: Cloudflare R2 (S3-compatible)
-- Cache: Upstash Redis (serverless)
+- Frontend: Vercel (CDN + hosting) - **FREE or $20/mo**
+- Backend: Railway (auto-scaling) - **$20/mo**
+- Database: Supabase (PostgreSQL 15+) - **FREE or $25/mo**
+- Cache: Upstash Redis - **$10/mo**
 
-**Cost:** ~$200-500/month for 50-200 users
+**Total Cost:** ~$20-75/month for 50-200 users  
+**Deployment Time:** 30-60 minutes
 
-### On-Premise Deployment (Large Hospitals)
+### Option 2: Docker Self-Hosted
 
-**Requirements:**
-- Kubernetes cluster (3+ nodes)
-- PostgreSQL HA (primary + replica)
-- Redis cluster (Sentinel mode)
-- NFS/SAN storage for voice recordings
-- VPN/private endpoint to Azure OpenAI
+**Best for:** On-premise deployments, existing infrastructure
 
-**Provided:**
-- Kubernetes manifests
-- Helm charts
-- Deployment scripts
-- Monitoring stack (Prometheus + Grafana)
+```bash
+# Quick start with Makefile
+make setup-prod        # Create .env.production
+# Edit .env.production with your values
+make preflight        # Validate configuration
+make deploy-prod      # Deploy to production
 
-**Cost:** Hospital infrastructure + Azure OpenAI API usage
+# Or manually
+cp .env.production.example .env.production
+# Edit .env.production
+docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+```
+
+**Cost:** Infrastructure only (~$50-100/mo for cloud VM)
+
+### Option 3: Kubernetes (Enterprise)
+
+**Best for:** Large hospitals, high availability, auto-scaling
+
+```bash
+# Deploy to Kubernetes
+kubectl apply -f k8s/00-namespace.yaml
+kubectl apply -f k8s/01-secrets.yaml  # Edit first!
+kubectl apply -f k8s/02-postgres.yaml
+kubectl apply -f k8s/03-redis.yaml
+kubectl apply -f k8s/04-backend.yaml
+kubectl apply -f k8s/05-frontend.yaml
+kubectl apply -f k8s/06-ingress.yaml   # Edit domain first!
+
+# See k8s/README.md for details
+```
+
+**Features:**
+- Auto-scaling (HPA)
+- High availability
+- Rolling updates
+- Resource isolation
+- Enterprise-grade monitoring
+
+### Deployment Resources
+
+| Resource | Description |
+|----------|-------------|
+| **[PRODUCTION-DEPLOYMENT.md](PRODUCTION-DEPLOYMENT.md)** | Complete deployment guide (Railway, Vercel, Docker, K8s, AWS) |
+| **[SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md)** | Pre-deployment security checklist |
+| **[SECURITY-ADVISORY.md](SECURITY-ADVISORY.md)** | Known security issues and mitigations |
+| **[Makefile](Makefile)** | Easy deployment commands (`make help`) |
+| **[k8s/](k8s/)** | Kubernetes manifests |
+| **`.env.production.example`** | Production environment template |
+| **`docker-compose.prod.yml`** | Production Docker Compose |
+
+### Quick Deploy Commands
+
+```bash
+# See all available commands
+make help
+
+# Development
+make install          # Install dependencies
+make dev              # Start dev servers
+
+# Production Docker
+make setup-prod       # Setup production env
+make preflight        # Pre-deployment checks
+make deploy-prod      # Deploy to production
+make health           # Check application health
+
+# Database
+make db-backup        # Backup database
+make db-restore       # Restore from backup
+
+# Utilities
+make security-scan    # Run security audit
+make logs            # View logs
+```
+
+### Production Checklist
+
+Before deploying to production:
+
+- [ ] Review **[SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md)**
+- [ ] All secrets changed from defaults
+- [ ] `SECRET_KEY` generated with `openssl rand -hex 32`
+- [ ] API keys configured (OpenAI, Anthropic)
+- [ ] Database backups configured
+- [ ] HTTPS/SSL enabled
+- [ ] CORS configured for your domain
+- [ ] Monitoring enabled (Sentry recommended)
+- [ ] Run `python3 scripts/validate-env.py production`
+- [ ] Run `make preflight` for Docker deployment
 
 ---
 
@@ -352,11 +441,22 @@ Earn rewards points across all products
 ## 📚 Documentation
 
 ### Quick Links
+- **[Production Deployment Guide](PRODUCTION-DEPLOYMENT.md)** - Complete deployment guide for all platforms ⭐
+- **[Security Checklist](SECURITY-CHECKLIST.md)** - Pre-deployment security review
+- **[Security Advisory](SECURITY-ADVISORY.md)** - Known issues and mitigations
 - **[Wireframes & User Flows](WIREFRAMES.md)** - UI mockups and navigation flows
 - **[Setup Guide](SETUP.md)** - Detailed installation instructions
 - **[Developer Guide](README-DEVELOPERS.md)** - Development workflow and best practices
 - **[User Guide](README-USERS.md)** - End-user documentation
 - **[Changelog](CHANGELOG.md)** - Version history and changes
+- **[Deployment Checklist](DEPLOYMENT-CHECKLIST-AND-REVENUE-GUIDE.md)** - Revenue strategy
+
+### Deployment Documentation
+- **[Kubernetes Manifests](k8s/)** - Enterprise Kubernetes deployment
+- **[Makefile](Makefile)** - Quick deployment commands
+- **`.env.production.example`** - Production configuration template
+- **`docker-compose.prod.yml`** - Production Docker Compose
+- **`scripts/validate-env.py`** - Environment validation tool
 
 ### Archived Documentation
 Comprehensive technical documentation is available in `docs/archive/`:
