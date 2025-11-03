@@ -2,13 +2,13 @@
 
 ## 💡 KEY INNOVATIONS
 
-### 1. **$0-25/Month Stack** (vs $200+)
+### 1. **$21/Month Stack** (vs $200+)
 - Supabase: Database + Auth + Storage + Realtime (FREE tier)
 - Vercel: Next.js hosting (FREE)
 - Cloudflare R2: File storage (FREE 10GB)
-- OpenAI Whisper: $0.006/min
-- Anthropic Claude: ~$0.03/handoff
-- **Total: ~$20/month for 50 users**
+- OpenAI Whisper: $0.006/min ($6/month for 500 handoffs)
+- Anthropic Claude: $0.03/handoff ($15/month for 500 handoffs)
+- **Total: $21/month for pilot (15-20 users, 500 handoffs)**
 
 ### 2. **QR Code Family Access** (No signup!)
 - Nurse creates patient → generates QR code

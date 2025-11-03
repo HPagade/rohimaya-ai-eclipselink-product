@@ -4,7 +4,7 @@
 
 A **production-ready, multi-stakeholder clinical handoff system** with:
 - ✅ All stakeholders (clinicians, families, patients, admins)
-- ✅ Budget-optimized ($21/month for 50 users)
+- ✅ Budget-optimized ($21/month for 15-20 users pilot)
 - ✅ Real-time features
 - ✅ Offline PWA support
 - ✅ HIPAA-compliant

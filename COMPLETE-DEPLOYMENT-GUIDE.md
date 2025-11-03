@@ -230,6 +230,7 @@ serve(async (req) => {
   }
 
   try {
+    const startTime = Date.now() // Track processing time
     const { handoff_id } = await req.json()
 
     // Initialize Supabase client
