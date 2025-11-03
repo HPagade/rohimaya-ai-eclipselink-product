@@ -121,6 +121,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install PyYAML
+        run: pip install pyyaml
+
       - name: Validate docker-compose files
         run: |
           # Check if docker-compose files are valid YAML
