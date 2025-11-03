@@ -32,6 +32,10 @@ jobs:
       - name: Run tests
         run: npm run test --workspace=apps/frontend
 
+      - name: Check for critical vulnerabilities
+        run: |
+          npm audit --audit-level=critical || echo "⚠️ Found vulnerabilities, check SECURITY-ADVISORY.md"
+
   test-backend:
     name: Backend Tests (Python FastAPI)
     runs-on: ubuntu-latest
@@ -71,3 +75,103 @@ jobs:
         run: |
           cd apps/backend
           pytest tests/ 2>/dev/null || echo "✓ No tests yet - coming in Day 2+"
+
+  docker-build-test:
+    name: Docker Build Test (Production)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend production image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          file: ./apps/backend/Dockerfile
+          target: production
+          push: false
+          tags: eclipselink-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend production image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          file: ./apps/frontend/Dockerfile
+          target: production
+          push: false
+          tags: eclipselink-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=https://api.example.com/api
+            VITE_ENVIRONMENT=production
+
+  validate-config:
+    name: Validate Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate docker-compose files
+        run: |
+          # Check if docker-compose files are valid YAML
+          python -c "import yaml; yaml.safe_load(open('docker-compose.yml'))"
+          python -c "import yaml; yaml.safe_load(open('docker-compose.prod.yml'))"
+          echo "✓ Docker Compose files are valid"
+
+      - name: Check for exposed secrets
+        run: |
+          # Check that example files don't contain real secrets
+          if grep -r "sk-proj-" .env.example .env.production.example 2>/dev/null; then
+            echo "❌ Real API keys found in example files!"
+            exit 1
+          fi
+          if grep -r "sk-ant-" .env.example .env.production.example 2>/dev/null; then
+            echo "❌ Real API keys found in example files!"
+            exit 1
+          fi
+          echo "✓ No exposed secrets in example files"
+
+      - name: Validate environment examples
+        run: |
+          # Check that all required env vars are documented
+          for file in .env.example .env.production.example; do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
+              grep -q "OPENAI_API_KEY" "$file" || (echo "Missing OPENAI_API_KEY" && exit 1)
+              grep -q "ANTHROPIC_API_KEY" "$file" || (echo "Missing ANTHROPIC_API_KEY" && exit 1)
+              grep -q "SECRET_KEY" "$file" || (echo "Missing SECRET_KEY" && exit 1)
+              echo "✓ $file has required variables"
+            fi
+          done
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true

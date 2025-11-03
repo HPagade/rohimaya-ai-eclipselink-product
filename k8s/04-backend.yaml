@@ -1,0 +1,201 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: eclipselink-prod
+  labels:
+    app: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4000
+    targetPort: 4000
+    protocol: TCP
+    name: http
+  selector:
+    app: backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: eclipselink-prod
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      initContainers:
+      # Wait for database to be ready
+      - name: wait-for-db
+        image: busybox:1.35
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z postgres 5432; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+      containers:
+      - name: backend
+        image: eclipselink-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4000
+          name: http
+        env:
+        # Environment from ConfigMap
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: ENVIRONMENT
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: DEBUG
+        - name: ALGORITHM
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: ALGORITHM
+        - name: ACCESS_TOKEN_EXPIRE_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: ACCESS_TOKEN_EXPIRE_MINUTES
+        - name: OPENAI_WHISPER_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: OPENAI_WHISPER_MODEL
+        - name: ANTHROPIC_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: ANTHROPIC_MODEL
+        - name: ANTHROPIC_MAX_TOKENS
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: ANTHROPIC_MAX_TOKENS
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: eclipselink-config
+              key: LOG_LEVEL
+        
+        # Secrets
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eclipselink-secrets
+              key: secret-key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eclipselink-secrets
+              key: openai-api-key
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eclipselink-secrets
+              key: anthropic-api-key
+        
+        # Database connection
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: eclipselink-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: eclipselink-secrets
+              key: postgres-password
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: eclipselink-secrets
+              key: postgres-db
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+        
+        # Redis connection
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: eclipselink-secrets
+              key: redis-password
+        - name: REDIS_URL
+          value: "redis://:$(REDIS_PASSWORD)@redis:6379/0"
+        
+        # CORS (update with your frontend domain)
+        - name: CORS_ORIGINS
+          value: '["https://yourdomain.com"]'
+        
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: eclipselink-prod
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
