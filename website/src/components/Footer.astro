@@ -1,0 +1,61 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-gray-900 text-gray-300">
+  <div class="container mx-auto px-6 py-12">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <!-- Company Info -->
+      <div class="md:col-span-2">
+        <div class="flex items-center space-x-2 mb-4">
+          <svg class="w-8 h-8 text-primary-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.87-.78-7-4.25-7-8V8.3l7-3.11 7 3.11V12c0 3.75-3.13 7.22-7 8z"/>
+          </svg>
+          <span class="text-xl font-bold text-white">EclipseLink AI</span>
+        </div>
+        <p class="text-gray-400 max-w-md">
+          Transform clinical handoffs with AI-powered SBAR generation, QR code family access, and real-time collaboration. Built for healthcare professionals.
+        </p>
+        <div class="mt-4">
+          <p class="text-sm font-semibold text-primary-400">Production Ready</p>
+          <p class="text-xs text-gray-500">$21/month operational cost | 15-user pilot MVP</p>
+        </div>
+      </div>
+
+      <!-- Product -->
+      <div>
+        <h3 class="font-semibold text-white mb-4">Product</h3>
+        <ul class="space-y-2">
+          <li><a href="#features" class="hover:text-primary-400 transition">Features</a></li>
+          <li><a href="#pricing" class="hover:text-primary-400 transition">Pricing</a></li>
+          <li><a href="#demo" class="hover:text-primary-400 transition">Request Demo</a></li>
+          <li><a href="#documentation" class="hover:text-primary-400 transition">Documentation</a></li>
+        </ul>
+      </div>
+
+      <!-- Resources -->
+      <div>
+        <h3 class="font-semibold text-white mb-4">Resources</h3>
+        <ul class="space-y-2">
+          <li><a href="#architecture" class="hover:text-primary-400 transition">Architecture</a></li>
+          <li><a href="#deployment" class="hover:text-primary-400 transition">Deployment Guide</a></li>
+          <li><a href="#api" class="hover:text-primary-400 transition">API Reference</a></li>
+          <li><a href="#support" class="hover:text-primary-400 transition">Support</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-800 mt-8 pt-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <p class="text-gray-500 text-sm">
+          © {currentYear} EclipseLink AI. All rights reserved.
+        </p>
+        <div class="flex space-x-6 mt-4 md:mt-0">
+          <a href="#" class="text-gray-500 hover:text-primary-400 transition text-sm">Privacy Policy</a>
+          <a href="#" class="text-gray-500 hover:text-primary-400 transition text-sm">Terms of Service</a>
+          <a href="#" class="text-gray-500 hover:text-primary-400 transition text-sm">HIPAA Compliance</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
