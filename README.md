@@ -301,7 +301,7 @@ EclipseLink AI is built HIPAA-compliant from the ground up:
 
 ```bash
 # See comprehensive guide
-cat PRODUCTION-DEPLOYMENT.md
+cat docs/deployment/PRODUCTION-DEPLOYMENT.md
 
 # Or follow quick Railway + Vercel guide (Option 1)
 ```
@@ -362,9 +362,9 @@ kubectl apply -f k8s/06-ingress.yaml   # Edit domain first!
 
 | Resource | Description |
 |----------|-------------|
-| **[PRODUCTION-DEPLOYMENT.md](PRODUCTION-DEPLOYMENT.md)** | Complete deployment guide (Railway, Vercel, Docker, K8s, AWS) |
-| **[SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md)** | Pre-deployment security checklist |
-| **[SECURITY-ADVISORY.md](SECURITY-ADVISORY.md)** | Known security issues and mitigations |
+| **[PRODUCTION-DEPLOYMENT.md](docs/deployment/PRODUCTION-DEPLOYMENT.md)** | Complete deployment guide (Railway, Vercel, Docker, K8s, AWS) |
+| **[SECURITY-CHECKLIST.md](docs/security/SECURITY-CHECKLIST.md)** | Pre-deployment security checklist |
+| **[SECURITY-ADVISORY.md](docs/security/SECURITY-ADVISORY.md)** | Known security issues and mitigations |
 | **[Makefile](Makefile)** | Easy deployment commands (`make help`) |
 | **[k8s/](k8s/)** | Kubernetes manifests |
 | **`.env.production.example`** | Production environment template |
@@ -399,7 +399,7 @@ make logs            # View logs
 
 Before deploying to production:
 
-- [ ] Review **[SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md)**
+- [ ] Review **[SECURITY-CHECKLIST.md](docs/security/SECURITY-CHECKLIST.md)**
 - [ ] All secrets changed from defaults
 - [ ] `SECRET_KEY` generated with `openssl rand -hex 32`
 - [ ] API keys configured (OpenAI, Anthropic)
